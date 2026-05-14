@@ -119,18 +119,27 @@ export async function fetchDashboardStats() {
 
   let ordersRes = await supabase
     .from("orders")
-    .select("id, customer_name, phone, created_at");
+    .select("id, customer_name, phone, placed_at");
 
-  let hasDaily = true;
+  let dailyField = null;
+  if (!ordersRes.error) {
+    dailyField = "placed_at";
+  } else {
+    ordersRes = await supabase
+      .from("orders")
+      .select("id, customer_name, phone, created_at");
+    if (!ordersRes.error) dailyField = "created_at";
+  }
+
   if (ordersRes.error) {
     ordersRes = await supabase
       .from("orders")
       .select("id, customer_name, phone");
-    hasDaily = false;
   }
 
   if (ordersRes.error) return { error: ordersRes.error, stats: null };
 
+  const hasDaily = dailyField !== null;
   const orders = ordersRes.data ?? [];
   const lines = itemsRes.data ?? [];
 
@@ -142,13 +151,17 @@ export async function fetchDashboardStats() {
   const phones = new Set(orders.map((o) => o.phone).filter(Boolean));
 
   const { start, end } = localDayIsoRange();
+  const startMs = new Date(start).getTime();
+  const endMs = new Date(end).getTime();
+
   const todayOrderIds = new Set(
     hasDaily
       ? orders
           .filter((o) => {
-            if (!o.created_at) return false;
-            const t = new Date(o.created_at).getTime();
-            return t >= new Date(start).getTime() && t <= new Date(end).getTime();
+            const raw = o[dailyField];
+            if (!raw) return false;
+            const t = new Date(raw).getTime();
+            return t >= startMs && t <= endMs;
           })
           .map((o) => o.id)
       : []

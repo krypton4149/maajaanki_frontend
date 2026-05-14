@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { getThaliIncludesLines } from "../data/thaliIncludes";
+import { emojiForMenuItem } from "../data/menuItemEmoji";
 import { fetchMenuCategories, fetchMenuItems } from "../services/queries";
 
 function formatInr(value) {
@@ -110,8 +111,9 @@ export default function Menu() {
         <div className="page-head-text">
           <h1 className="page-title">Menu Manager</h1>
           <p className="page-subtitle">
-            Dishes from Supabase in a card grid—quick to scan, with veg / non-veg
-            accents. Filter from the top search by name, price, category, or diet.
+            Your live menu at a glance—organised by section, with clear veg and
+            non-veg markers. Use the search bar to jump to a dish, price, category,
+            or dietary preference in seconds.
           </p>
         </div>
       </header>
@@ -190,24 +192,42 @@ export default function Menu() {
                 <div className="menu-card-grid">
                   {catItems.map((item) => {
                     const thaliLines = getThaliIncludesLines(item.name);
+                    const dishEmoji = emojiForMenuItem(
+                      item.name,
+                      cat.title,
+                      item.veg
+                    );
                     return (
                     <article
                       key={item.id}
                       className={`menu-card-v2${item.veg ? " menu-card-v2--veg" : " menu-card-v2--nonveg"}`}
                     >
                       <span className="menu-card-v2__shine" aria-hidden="true" />
-                      <span className="menu-card-v2__badge">
-                        {item.veg ? "Veg" : "Non-veg"}
-                      </span>
-                      <h3 className="menu-card-v2__title">{item.name}</h3>
-                      {thaliLines && thaliLines.length > 0 ? (
-                        <ul className="menu-card-v2__includes" aria-label="Included in this thali">
-                          {thaliLines.map((line) => (
-                            <li key={line}>{line}</li>
-                          ))}
-                        </ul>
-                      ) : null}
-                      <p className="menu-card-v2__price">{formatInr(item.price)}</p>
+                      <span className="menu-card-v2__glow" aria-hidden="true" />
+                      <header className="menu-card-v2__top">
+                        <span className="menu-card-v2__emoji-wrap" aria-hidden="true">
+                          <span className="menu-card-v2__emoji">{dishEmoji}</span>
+                        </span>
+                        <span className="menu-card-v2__badge">
+                          {item.veg ? "Veg" : "Non-veg"}
+                        </span>
+                      </header>
+                      <div className="menu-card-v2__main">
+                        <h3 className="menu-card-v2__title">{item.name}</h3>
+                        {thaliLines && thaliLines.length > 0 ? (
+                          <ul className="menu-card-v2__includes" aria-label="Included in this thali">
+                            {thaliLines.map((line) => (
+                              <li key={line}>{line}</li>
+                            ))}
+                          </ul>
+                        ) : null}
+                      </div>
+                      <footer className="menu-card-v2__footer">
+                        <span className="menu-card-v2__sparkle" aria-hidden="true">
+                          ✨
+                        </span>
+                        <span className="menu-card-v2__price">{formatInr(item.price)}</span>
+                      </footer>
                     </article>
                   );
                   })}

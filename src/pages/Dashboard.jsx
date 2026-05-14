@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { fetchDashboardStats } from "../services/queries";
 
 function formatInr(value) {
@@ -58,10 +59,121 @@ function IconBolt() {
   );
 }
 
+function IconClock() {
+  return (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function IconX() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <path d="M18 6L6 18M6 6l12 12" />
+    </svg>
+  );
+}
+
+const STAFFING_CHECKLIST = [
+  "Add one extra cook on tandoor or main line from 7:45 PM.",
+  "Pre-batch rice, dal, and breads before 8:00 PM where possible.",
+  "Confirm at least two delivery riders on standby for 8–10 PM.",
+  "Brief counter staff on estimated wait times during the spike.",
+];
+
+function StaffingRushModal({ onClose, onViewOrders, onViewSupport }) {
+  useEffect(() => {
+    function onKey(e) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="order-modal-backdrop"
+      role="presentation"
+      onClick={onClose}
+    >
+      <div
+        className="order-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="staffing-modal-title"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="order-modal-header">
+          <div>
+            <h2 id="staffing-modal-title" className="order-modal-title">
+              Rush-hour staffing
+            </h2>
+            <p className="order-modal-id">Tonight · 8:00 PM – 10:00 PM</p>
+          </div>
+          <button
+            type="button"
+            className="order-modal-close"
+            onClick={onClose}
+            aria-label="Close"
+          >
+            <IconX />
+          </button>
+        </div>
+
+        <div className="order-modal-body">
+          <div className="order-modal-section">
+            <p className="staffing-modal-lede">
+              Use this checklist before the evening rush. Adjust headcount to match
+              your real covers and delivery load.
+            </p>
+          </div>
+          <div className="order-modal-section">
+            <h3>Prep &amp; floor</h3>
+            <ul className="staffing-checklist">
+              {STAFFING_CHECKLIST.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        <div className="order-modal-footer">
+          <button type="button" className="btn btn-primary" onClick={onViewOrders}>
+            Open Live Orders
+          </button>
+          <button type="button" className="btn btn-ghost" onClick={onViewSupport}>
+            Runbook &amp; contacts
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [staffingModalOpen, setStaffingModalOpen] = useState(false);
+
+  const closeStaffingModal = useCallback(() => setStaffingModalOpen(false), []);
+
+  const goToLiveOrders = useCallback(() => {
+    setStaffingModalOpen(false);
+    navigate("/orders");
+  }, [navigate]);
+
+  const goToSupportRunbook = useCallback(() => {
+    setStaffingModalOpen(false);
+    navigate("/support");
+  }, [navigate]);
+
+  const viewRushDetails = useCallback(() => {
+    navigate("/orders");
+  }, [navigate]);
 
   useEffect(() => {
     let cancelled = false;
@@ -86,9 +198,29 @@ export default function Dashboard() {
     };
   }, []);
 
-  const segmentOn = useMemo(() => {
-    if (!stats) return 0;
-    return Math.min(4, Math.max(0, Math.round((stats.capacityPct / 100) * 4)));
+  /** Progress bar widths (meaningful vs decorative caps). */
+  const barWidths = useMemo(() => {
+    if (!stats) return { revenue: 0, orders: 0, todayRevenue: 0, todayOrders: 0 };
+    const revRef = 100_000;
+    const revenue = Math.min(100, Math.round((stats.revenue / revRef) * 100));
+    const orders = Math.min(100, stats.capacityPct);
+    let todayRevenue = 0;
+    let todayOrders = 0;
+    if (stats.hasDailyBreakdown) {
+      if (stats.revenue > 0) {
+        todayRevenue = Math.min(
+          100,
+          Math.round((stats.todayRevenue / stats.revenue) * 100)
+        );
+      }
+      if (stats.orderCount > 0) {
+        todayOrders = Math.min(
+          100,
+          Math.round((stats.todayOrderCount / stats.orderCount) * 100)
+        );
+      }
+    }
+    return { revenue, orders, todayRevenue, todayOrders };
   }, [stats]);
 
   return (
@@ -126,7 +258,7 @@ export default function Dashboard() {
       {!loading && stats && (
         <>
           <div className="summary-grid">
-            <article className="summary-card">
+            <article className="summary-card summary-card--accent-cyan">
               <div className="summary-card-top">
                 <div className="summary-card-icon" aria-hidden="true">
                   <IconBill />
@@ -138,12 +270,12 @@ export default function Dashboard() {
               <div className="summary-progress" aria-hidden="true">
                 <div
                   className="summary-progress-fill summary-progress-fill--cyan"
-                  style={{ width: "72%" }}
+                  style={{ width: `${barWidths.revenue}%` }}
                 />
               </div>
             </article>
 
-            <article className="summary-card">
+            <article className="summary-card summary-card--accent-purple">
               <div className="summary-card-top">
                 <div className="summary-card-icon summary-card-icon--purple" aria-hidden="true">
                   <IconBag />
@@ -157,12 +289,12 @@ export default function Dashboard() {
               <div className="summary-progress" aria-hidden="true">
                 <div
                   className="summary-progress-fill summary-progress-fill--purple"
-                  style={{ width: "58%" }}
+                  style={{ width: `${barWidths.orders}%` }}
                 />
               </div>
             </article>
 
-            <article className="summary-card summary-card--live">
+            <article className="summary-card summary-card--accent-cyan summary-card--live summary-card--with-meta">
               <div className="summary-card-top">
                 <div className="summary-card-icon" aria-hidden="true">
                   <IconCalendar />
@@ -178,13 +310,21 @@ export default function Dashboard() {
               <p className="summary-card-meta">
                 {stats.hasDailyBreakdown
                   ? "From orders placed today"
-                  : "Add created_at on orders for daily totals"}
+                  : "Add placed_at or created_at on orders for daily totals"}
               </p>
+              <div className="summary-progress" aria-hidden="true">
+                <div
+                  className="summary-progress-fill summary-progress-fill--cyan"
+                  style={{
+                    width: stats.hasDailyBreakdown ? `${barWidths.todayRevenue}%` : "0%",
+                  }}
+                />
+              </div>
             </article>
 
-            <article className="summary-card">
+            <article className="summary-card summary-card--accent-amber">
               <div className="summary-card-top">
-                <div className="summary-card-icon summary-card-icon--muted" aria-hidden="true">
+                <div className="summary-card-icon summary-card-icon--warm" aria-hidden="true">
                   <IconUtensils />
                 </div>
                 <span className="summary-badge summary-badge--neutral">
@@ -192,40 +332,82 @@ export default function Dashboard() {
                 </span>
               </div>
               <p className="summary-card-kicker">Today&apos;s orders</p>
-              <p className="summary-card-value">
+              <p className="summary-card-value summary-card-value--warm">
                 {stats.hasDailyBreakdown
                   ? stats.todayOrderCount.toLocaleString("en-IN")
                   : "—"}
               </p>
-              <div className="summary-progress-segments" aria-hidden="true">
-                {[0, 1, 2, 3].map((i) => (
-                  <span key={i} className={i < segmentOn ? "is-on" : ""} />
-                ))}
+              {stats.hasDailyBreakdown ? (
+                <p className="summary-card-meta summary-card-meta--inline">
+                  Today vs all orders in your dataset
+                </p>
+              ) : (
+                <div
+                  className="summary-card-meta-spacer"
+                  aria-hidden="true"
+                />
+              )}
+              <div className="summary-progress" aria-hidden="true">
+                <div
+                  className="summary-progress-fill summary-progress-fill--amber"
+                  style={{
+                    width: stats.hasDailyBreakdown ? `${barWidths.todayOrders}%` : "0%",
+                  }}
+                />
               </div>
             </article>
           </div>
 
           <section className="prediction-banner" aria-labelledby="prediction-heading">
             <div className="prediction-banner-bg" aria-hidden="true" />
-            <div className="prediction-banner-inner">
-              <h2 id="prediction-heading">
-                Evening rush prediction: high volume
-              </h2>
-              <p>
-                Expect up to 20% more orders between 8:00 PM and 10:00 PM. Prep
-                stations and riders accordingly.
-              </p>
-              <div className="prediction-actions">
-                <button type="button" className="btn btn-primary">
-                  <IconBolt />
-                  Optimize staffing
-                </button>
-                <button type="button" className="btn btn-ghost">
-                  View details
-                </button>
+            <div className="prediction-banner-layout">
+              <div className="prediction-banner-inner">
+                <p className="prediction-banner-eyebrow">Service planning</p>
+                <h2 id="prediction-heading">
+                  Evening rush: expect high volume
+                </h2>
+                <p className="prediction-banner-lede">
+                  Roughly a fifth more tickets than average between 8:00 PM and
+                  10:00 PM. Line up prep and riders before the spike.
+                </p>
+                <div className="prediction-actions">
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => setStaffingModalOpen(true)}
+                  >
+                    <IconBolt />
+                    Optimize staffing
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={viewRushDetails}
+                  >
+                    View details
+                  </button>
+                </div>
               </div>
+              <aside className="prediction-window-card" aria-label="Peak service window">
+                <div className="prediction-window-icon" aria-hidden="true">
+                  <IconClock />
+                </div>
+                <p className="prediction-window-label">Peak window</p>
+                <p className="prediction-window-time">8:00 PM – 10:00 PM</p>
+                <p className="prediction-window-hint">
+                  Highest order volume expected
+                </p>
+              </aside>
             </div>
           </section>
+
+          {staffingModalOpen && (
+            <StaffingRushModal
+              onClose={closeStaffingModal}
+              onViewOrders={goToLiveOrders}
+              onViewSupport={goToSupportRunbook}
+            />
+          )}
         </>
       )}
     </>

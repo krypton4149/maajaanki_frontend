@@ -145,11 +145,10 @@ function IconCheck() {
   );
 }
 
-function IconRefresh() {
+function IconPipeline() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-      <path d="M23 4v6h-6M1 20v-6h6" />
-      <path d="M3.51 9a9 9 0 0114.13-3.36L23 10M1 14l5.36 4.36A9 9 0 0020.49 15" />
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden="true">
+      <path d="M4 6h16M4 12h16M4 18h10" strokeLinecap="round" />
     </svg>
   );
 }
@@ -408,6 +407,36 @@ export default function Orders() {
     return { active, preparing, dispatched };
   }, [filteredOrders]);
 
+  /** Share of each lifecycle phase in the current list (updates with search + live poll). */
+  const orderPipeline = useMemo(() => {
+    const n = filteredOrders.length;
+    const pct = (count) =>
+      n === 0 ? 0 : Math.min(100, Math.round((count / n) * 100));
+    return [
+      {
+        key: "active",
+        label: "New & confirmed",
+        pct: pct(statusCounts.active),
+        count: statusCounts.active,
+        fillClass: "widget-bar-fill--cyan",
+      },
+      {
+        key: "preparing",
+        label: "Preparing",
+        pct: pct(statusCounts.preparing),
+        count: statusCounts.preparing,
+        fillClass: "widget-bar-fill--purple",
+      },
+      {
+        key: "dispatched",
+        label: "Out / dispatched",
+        pct: pct(statusCounts.dispatched),
+        count: statusCounts.dispatched,
+        fillClass: "widget-bar-fill--green",
+      },
+    ];
+  }, [filteredOrders, statusCounts]);
+
   const pageCount = Math.max(1, Math.ceil(filteredOrders.length / PAGE_SIZE));
   const safePage = Math.min(page, pageCount - 1);
   const pageOrders = useMemo(() => {
@@ -440,12 +469,6 @@ export default function Orders() {
               {String(statusCounts.active).padStart(2, "0")}
             </span>
             <span className="quick-stat-label">Active</span>
-          </div>
-          <div className="quick-stat">
-            <span className="quick-stat-value quick-stat-value--purple">
-              {String(statusCounts.preparing).padStart(2, "0")}
-            </span>
-            <span className="quick-stat-label">Preparing</span>
           </div>
           <div className="quick-stat">
             <span className="quick-stat-value quick-stat-value--green">
@@ -602,35 +625,41 @@ export default function Orders() {
           )}
 
           <div className="widgets-row">
-            <div className="widget-card">
+            <div className="widget-card widget-card--pipeline">
               <h3>
-                <IconRefresh aria-hidden="true" />
-                Kitchen load status
+                <IconPipeline />
+                Order pipeline
+                <span className="widget-h3-meta">
+                  {filteredOrders.length} in view
+                  {ordersSearch.trim() ? ` · ${orders.length} total` : ""}
+                </span>
               </h3>
-              <div className="widget-bar-row">
-                <div className="widget-bar-label">
-                  <span>Station: Tandoor</span>
-                  <span>85%</span>
+              <p className="widget-card-lede">
+                Each bar is the share of orders in that stage for the list above
+                (same filters as the table).
+              </p>
+              {orderPipeline.map((row) => (
+                <div
+                  key={row.key}
+                  className="widget-bar-row"
+                  role="group"
+                  aria-label={`${row.label}: ${row.count} orders, ${row.pct} percent of this list`}
+                >
+                  <div className="widget-bar-label">
+                    <span>
+                      {row.label}
+                      <span className="widget-bar-count"> ({row.count})</span>
+                    </span>
+                    <span>{row.pct}%</span>
+                  </div>
+                  <div className="widget-bar-track">
+                    <div
+                      className={`widget-bar-fill ${row.fillClass}`}
+                      style={{ width: `${row.pct}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="widget-bar-track">
-                  <div
-                    className="widget-bar-fill widget-bar-fill--cyan"
-                    style={{ width: "85%" }}
-                  />
-                </div>
-              </div>
-              <div className="widget-bar-row">
-                <div className="widget-bar-label">
-                  <span>Station: Curry &amp; main</span>
-                  <span>42%</span>
-                </div>
-                <div className="widget-bar-track">
-                  <div
-                    className="widget-bar-fill widget-bar-fill--purple"
-                    style={{ width: "42%" }}
-                  />
-                </div>
-              </div>
+              ))}
             </div>
 
             <div className="widget-card">
