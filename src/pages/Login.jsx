@@ -139,6 +139,9 @@ export default function Login() {
       </div>
 
       <div className="login-screen__status">
+        <span className="login-screen__status-emoji" aria-hidden="true">
+          🟢
+        </span>
         <span className="login-screen__status-dot" />
         <span className="login-screen__status-text">System online</span>
       </div>
@@ -156,8 +159,26 @@ export default function Login() {
           <span className="login-card__deco login-card__deco--b" aria-hidden="true" />
 
           <div className="login-card__brand login-reveal" style={revealDelay(t0)}>
-            <h1 className="login-card__title">Maa Jaanki</h1>
-            <p className="login-card__tagline">Admin Console</p>
+            <div className="login-card__hero">
+              <img
+                className="login-card__hero-img"
+                src="/login-hero.svg"
+                alt=""
+                width={360}
+                height={120}
+                decoding="async"
+              />
+              <p className="login-card__hero-tag" aria-hidden="true">
+                🍽️ Kitchen · 📊 Live dashboard · ✨
+              </p>
+            </div>
+            <h1 className="login-card__title">
+              <span className="login-card__title-emoji" aria-hidden="true">
+                🏪
+              </span>
+              <span className="login-card__title-text">Maa Jaanki</span>
+            </h1>
+            <p className="login-card__tagline">Admin console · secure sign-in</p>
           </div>
 
           <form onSubmit={handleSubmit} noValidate>
@@ -220,8 +241,20 @@ export default function Login() {
               </label>
             </div>
 
-            <button type="submit" className="login-submit login-reveal" style={revealDelay(t4)} disabled={busy}>
-              Enter console
+            <button
+              type="submit"
+              className="login-submit login-reveal"
+              style={revealDelay(t4)}
+              disabled={busy}
+              aria-busy={busy}
+            >
+              <span className="login-submit__emoji" aria-hidden="true">
+                {busy ? "⏳" : "🔐"}
+              </span>
+              <span className="login-submit__text">
+                <span className="login-submit__label">{busy ? "Signing in…" : "Log in"}</span>
+                <span className="login-submit__hint">Maa Jaanki admin console</span>
+              </span>
               <span className="login-submit__arrow" aria-hidden="true">
                 <IconArrowConsole />
               </span>
@@ -229,7 +262,7 @@ export default function Login() {
           </form>
 
           <p className="login-clearance login-reveal" style={revealDelay(t5)}>
-            System authority: Level 4 clearance required
+            🔒 System authority: Level 4 clearance required
           </p>
         </div>
       </div>
