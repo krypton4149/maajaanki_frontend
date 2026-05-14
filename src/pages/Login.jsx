@@ -50,6 +50,26 @@ function revealDelay(ms) {
   return { animationDelay: `${ms}ms` };
 }
 
+/** Decorative background bubbles — positions/delays feel organic but stay deterministic. */
+const LOGIN_BUBBLES = [
+  { x: 6, y: 12, s: 52, d: 0, hue: "cyan" },
+  { x: 88, y: 8, s: 38, d: -1.2, hue: "purple" },
+  { x: 14, y: 62, s: 72, d: -2.4, hue: "cyan" },
+  { x: 72, y: 48, s: 44, d: -0.6, hue: "purple" },
+  { x: 42, y: 22, s: 28, d: -3.1, hue: "cyan" },
+  { x: 92, y: 72, s: 56, d: -1.8, hue: "cyan" },
+  { x: 28, y: 88, s: 34, d: -4.2, hue: "purple" },
+  { x: 58, y: 8, s: 22, d: -2.9, hue: "cyan" },
+  { x: 4, y: 42, s: 48, d: -0.3, hue: "purple" },
+  { x: 78, y: 28, s: 64, d: -3.6, hue: "cyan" },
+  { x: 52, y: 76, s: 30, d: -1.1, hue: "purple" },
+  { x: 34, y: 44, s: 18, d: -5.0, hue: "cyan" },
+  { x: 96, y: 38, s: 40, d: -2.2, hue: "cyan" },
+  { x: 18, y: 30, s: 26, d: -4.5, hue: "purple" },
+  { x: 64, y: 92, s: 58, d: -0.9, hue: "cyan" },
+  { x: 48, y: 56, s: 20, d: -3.3, hue: "purple" },
+];
+
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -100,6 +120,24 @@ export default function Login() {
       </div>
       <div className="login-screen__scan" aria-hidden="true" />
 
+      <div className="login-screen__bubbles" aria-hidden="true">
+        {LOGIN_BUBBLES.map((b, i) => (
+          <span
+            key={i}
+            className={`login-bubble login-bubble--${b.hue}`}
+            style={
+              {
+                "--bx": `${b.x}%`,
+                "--by": `${b.y}%`,
+                "--bs": `${b.s}px`,
+                "--bd": `${b.d}s`,
+                "--dur": `${10 + (i % 5) * 1.4}s`,
+              }
+            }
+          />
+        ))}
+      </div>
+
       <div className="login-screen__status">
         <span className="login-screen__status-dot" />
         <span className="login-screen__status-text">System online</span>
@@ -114,10 +152,12 @@ export default function Login() {
       <div className="login-card-float">
         <div className="login-card">
           <div className="login-card__accent" aria-hidden="true" />
+          <span className="login-card__deco login-card__deco--a" aria-hidden="true" />
+          <span className="login-card__deco login-card__deco--b" aria-hidden="true" />
 
           <div className="login-card__brand login-reveal" style={revealDelay(t0)}>
             <h1 className="login-card__title">Maa Jaanki</h1>
-            <p className="login-card__tagline">Nocturnal command console</p>
+            <p className="login-card__tagline">Admin Console</p>
           </div>
 
           <form onSubmit={handleSubmit} noValidate>
