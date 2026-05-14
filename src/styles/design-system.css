@@ -1,0 +1,76 @@
+/**
+ * Maa Jaanki Admin — design tokens (Nocturnal / dark console spec)
+ * Primary #0F172A scale anchor · Secondary cyan #22D3EE · Tertiary #A855F7 · Neutral #787778
+ * Surfaces: #0a0a0a bg · #121212 sidebar · #1a1a1a / #1e1e1e cards · border #262626
+ * Accents in UI: teal #4FD1C5, purple #A855F7 / #c084fc, green #4ade80 / #10b981
+ */
+
+:root {
+  /* —— Surfaces —— */
+  --color-bg-deep: #0a0a0a;
+  --color-bg: #0d0d0d;
+  --color-bg-elevated: #121212;
+  --color-surface: #161616;
+  --color-surface-2: #1a1a1a;
+  --color-surface-3: #1e1e1e;
+  --color-border: #262626;
+  --color-border-subtle: rgba(255, 255, 255, 0.06);
+
+  /* —— Brand scales (reference) —— */
+  --color-primary-900: #0f172a;
+  --color-secondary-400: #22d3ee;
+  --color-tertiary-500: #a855f7;
+  --color-neutral-500: #787778;
+
+  /* —— Semantic accents —— */
+  --color-cyan: #4fd1c5;
+  --color-cyan-bright: #5eead4;
+  --color-cyan-muted: rgba(79, 209, 197, 0.12);
+  --color-purple: #a855f7;
+  --color-purple-soft: #c084fc;
+  --color-purple-muted: rgba(168, 85, 247, 0.14);
+  --color-green: #4ade80;
+  --color-green-deep: #10b981;
+  --color-green-muted: rgba(74, 222, 128, 0.12);
+
+  /* —— Text —— */
+  --color-text: #ffffff;
+  --color-text-secondary: #9ca3af;
+  --color-text-muted: #6b7280;
+  --color-text-label: #a0aec0;
+
+  /* —— Typography —— */
+  --font-head: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-label: "Geist", ui-sans-serif, system-ui, sans-serif;
+
+  --fs-xs: 0.75rem; /* 12px */
+  --fs-sm: 0.8125rem; /* 13px */
+  --fs-body: 0.875rem; /* 14px */
+  --fs-md: 0.9375rem; /* 15px */
+  --fs-lg: 1.125rem; /* 18px */
+  --fs-xl: 1.5rem; /* 24px */
+  --fs-2xl: 1.75rem; /* 28px */
+  --fs-hero: clamp(1.5rem, 2.5vw, 1.875rem); /* ~24–30 */
+
+  --lh-tight: 1.2;
+  --lh-body: 1.55;
+  --ls-label: 0.08em;
+  --ls-tight: -0.02em;
+
+  /* —— Radius —— */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 9999px;
+
+  /* —— Layout —— */
+  --sidebar-width: 260px;
+  --topbar-height: 72px;
+  --content-max: 1280px;
+
+  /* —— Effects —— */
+  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.45);
+  --glow-cyan: 0 0 0 1px rgba(79, 209, 197, 0.25),
+    0 0 40px rgba(79, 209, 197, 0.08);
+}
