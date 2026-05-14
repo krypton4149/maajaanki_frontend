@@ -343,23 +343,30 @@ export default function Orders() {
   useEffect(() => {
     let cancelled = false;
 
-    async function load() {
-      setLoading(true);
-      setError(null);
+    async function load(silent) {
+      if (!silent) {
+        setLoading(true);
+        setError(null);
+      }
       const { data, error: qErr } = await fetchOrdersWithItems();
       if (cancelled) return;
       if (qErr) {
         setError(qErr.message);
-        setOrders([]);
+        if (!silent) setOrders([]);
       } else {
+        setError(null);
         setOrders(data ?? []);
       }
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
 
-    load();
+    load(false);
+    const intervalId = setInterval(() => {
+      load(true);
+    }, 3000);
     return () => {
       cancelled = true;
+      clearInterval(intervalId);
     };
   }, []);
 
