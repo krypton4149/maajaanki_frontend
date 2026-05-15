@@ -59,14 +59,6 @@ function IconSearch(props) {
   );
 }
 
-function IconBell(props) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" {...props}>
-      <path d="M18 8A6 6 0 006 8c0 7-3 7-3 7h18s-3 0-3-7M13.73 21a2 2 0 01-3.46 0" />
-    </svg>
-  );
-}
-
 function IconHamburger(props) {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
@@ -299,14 +291,9 @@ export default function AdminLayout() {
               </div>
             )}
 
-            <button type="button" className="admin-icon-btn" aria-label="Notifications">
-              <IconBell />
-              <span className="admin-notify-dot" aria-hidden="true" />
-            </button>
-
             <div className="admin-user">
               <div className="admin-user-text">
-                <span className="admin-user-name">Admin User</span>
+                <span className="admin-user-name">Maa Jaanki</span>
                 <span className="admin-user-role">
                   {pathname === "/settings"
                     ? "General Manager"
