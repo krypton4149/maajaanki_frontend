@@ -38,37 +38,9 @@ function IconEyeOff() {
   );
 }
 
-function IconArrowConsole() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-      <path d="M5 12h14M13 6l6 6-6 6" />
-    </svg>
-  );
-}
-
 function revealDelay(ms) {
   return { animationDelay: `${ms}ms` };
 }
-
-/** Decorative background bubbles — positions/delays feel organic but stay deterministic. */
-const LOGIN_BUBBLES = [
-  { x: 6, y: 12, s: 52, d: 0, hue: "cyan" },
-  { x: 88, y: 8, s: 38, d: -1.2, hue: "purple" },
-  { x: 14, y: 62, s: 72, d: -2.4, hue: "cyan" },
-  { x: 72, y: 48, s: 44, d: -0.6, hue: "purple" },
-  { x: 42, y: 22, s: 28, d: -3.1, hue: "cyan" },
-  { x: 92, y: 72, s: 56, d: -1.8, hue: "cyan" },
-  { x: 28, y: 88, s: 34, d: -4.2, hue: "purple" },
-  { x: 58, y: 8, s: 22, d: -2.9, hue: "cyan" },
-  { x: 4, y: 42, s: 48, d: -0.3, hue: "purple" },
-  { x: 78, y: 28, s: 64, d: -3.6, hue: "cyan" },
-  { x: 52, y: 76, s: 30, d: -1.1, hue: "purple" },
-  { x: 34, y: 44, s: 18, d: -5.0, hue: "cyan" },
-  { x: 96, y: 38, s: 40, d: -2.2, hue: "cyan" },
-  { x: 18, y: 30, s: 26, d: -4.5, hue: "purple" },
-  { x: 64, y: 92, s: 58, d: -0.9, hue: "cyan" },
-  { x: 48, y: 56, s: 20, d: -3.3, hue: "purple" },
-];
 
 export default function Login() {
   const navigate = useNavigate();
@@ -77,7 +49,6 @@ export default function Login() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -91,7 +62,7 @@ export default function Login() {
     setError("");
     setBusy(true);
     await new Promise((r) => setTimeout(r, 280));
-    const result = login(email, password, rememberMe);
+    const result = login(email, password, false);
     setBusy(false);
     if (!result.ok) {
       setError(result.error);
@@ -100,95 +71,35 @@ export default function Login() {
     navigate(from === "/login" ? "/" : from, { replace: true });
   }
 
-  const t0 = 90;
-  const t1 = error ? 200 : 160;
-  const t2 = error ? 280 : 230;
-  const t3 = error ? 360 : 300;
-  const t4 = error ? 440 : 370;
-  const t5 = error ? 520 : 440;
-  const t6 = error ? 590 : 510;
+  const t0 = 80;
+  const t1 = error ? 180 : 140;
+  const t2 = error ? 260 : 200;
+  const t3 = error ? 340 : 270;
+  const t4 = error ? 420 : 340;
 
   return (
     <div className="login-screen">
       <div className="login-screen__bg" aria-hidden="true" />
+      <div className="login-screen__wash" aria-hidden="true" />
       <div className="login-screen__vignette" aria-hidden="true" />
-      <div className="login-screen__grid" aria-hidden="true" />
-      <div className="login-screen__orbs" aria-hidden="true">
-        <span className="login-orb login-orb--a" />
-        <span className="login-orb login-orb--b" />
-        <span className="login-orb login-orb--c" />
-      </div>
-      <div className="login-screen__scan" aria-hidden="true" />
-
-      <div className="login-screen__bubbles" aria-hidden="true">
-        {LOGIN_BUBBLES.map((b, i) => (
-          <span
-            key={i}
-            className={`login-bubble login-bubble--${b.hue}`}
-            style={
-              {
-                "--bx": `${b.x}%`,
-                "--by": `${b.y}%`,
-                "--bs": `${b.s}px`,
-                "--bd": `${b.d}s`,
-                "--dur": `${10 + (i % 5) * 1.4}s`,
-              }
-            }
-          />
-        ))}
-      </div>
-
-      <div className="login-screen__status">
-        <span className="login-screen__status-emoji" aria-hidden="true">
-          🟢
-        </span>
-        <span className="login-screen__status-dot" />
-        <span className="login-screen__status-text">System online</span>
-      </div>
-
-      <div className="login-screen__meta" aria-hidden="true">
-        NODE: MJR-CONSOLE-01
-        <br />
-        IP: 192.168.1.104
-      </div>
 
       <div className="login-card-float">
         <div className="login-card">
           <div className="login-card__accent" aria-hidden="true" />
-          <span className="login-card__deco login-card__deco--a" aria-hidden="true" />
-          <span className="login-card__deco login-card__deco--b" aria-hidden="true" />
 
           <div className="login-card__brand login-reveal" style={revealDelay(t0)}>
-            <div className="login-card__hero">
-              <img
-                className="login-card__hero-img"
-                src="/login-hero.svg"
-                alt=""
-                width={360}
-                height={120}
-                decoding="async"
-              />
-              <p className="login-card__hero-tag" aria-hidden="true">
-                🍽️ Kitchen · 📊 Live dashboard · ✨
-              </p>
-            </div>
-            <h1 className="login-card__title">
-              <span className="login-card__title-emoji" aria-hidden="true">
-                🏪
-              </span>
-              <span className="login-card__title-text">Maa Jaanki</span>
-            </h1>
-            <p className="login-card__tagline">Admin console · secure sign-in</p>
+            <h1 className="login-card__title">Maa Jaanki</h1>
+            <p className="login-card__tagline">Private kitchen management</p>
           </div>
 
           <form onSubmit={handleSubmit} noValidate>
             {error ? (
-              <p className="login-error" role="alert">
+              <p className="login-error login-reveal" role="alert" style={revealDelay(t1)}>
                 {error}
               </p>
             ) : null}
 
-            <div className="login-field login-reveal" style={revealDelay(t1)}>
+            <div className="login-field login-reveal" style={revealDelay(error ? t1 + 40 : t1)}>
               <label htmlFor="login-admin-id">Admin ID</label>
               <div className="login-input-wrap">
                 <IconId />
@@ -197,7 +108,7 @@ export default function Login() {
                   name="email"
                   type="email"
                   autoComplete="username"
-                  placeholder="Enter credentials"
+                  placeholder="Enter identification"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -206,7 +117,7 @@ export default function Login() {
             </div>
 
             <div className="login-field login-reveal" style={revealDelay(t2)}>
-              <label htmlFor="login-password">Password</label>
+              <label htmlFor="login-password">Passcode</label>
               <div className="login-input-wrap">
                 <IconLock />
                 <input
@@ -222,58 +133,36 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-label={showPassword ? "Hide passcode" : "Show passcode"}
                 >
                   {showPassword ? <IconEyeOff /> : <IconEye />}
                 </button>
               </div>
             </div>
 
-            <div className="login-row login-reveal" style={revealDelay(t3)}>
-              <label className="login-remember">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                />
-                <span className="login-remember-track" aria-hidden="true" />
-                Remember me
-              </label>
-            </div>
-
             <button
               type="submit"
               className="login-submit login-reveal"
-              style={revealDelay(t4)}
+              style={revealDelay(t3)}
               disabled={busy}
               aria-busy={busy}
             >
-              <span className="login-submit__emoji" aria-hidden="true">
-                {busy ? "⏳" : "🔐"}
-              </span>
-              <span className="login-submit__text">
-                <span className="login-submit__label">{busy ? "Signing in…" : "Log in"}</span>
-                <span className="login-submit__hint">Maa Jaanki admin console</span>
-              </span>
-              <span className="login-submit__arrow" aria-hidden="true">
-                <IconArrowConsole />
-              </span>
+              {busy ? "Opening kitchen…" : "Enter kitchen"}{" "}
+              <span aria-hidden="true">{busy ? "⏳" : "🍴"}</span>
             </button>
           </form>
 
-          <p className="login-clearance login-reveal" style={revealDelay(t5)}>
-            🔒 System authority: Level 4 clearance required
-          </p>
+          <div className="login-card__ribbon login-reveal" style={revealDelay(t4)}>
+            <span className="login-card__ribbon-line" aria-hidden="true" />
+            <p>Authorized personnel only</p>
+            <span className="login-card__ribbon-line" aria-hidden="true" />
+          </div>
         </div>
       </div>
 
-      <nav className="login-footer-links login-footer-links--enter" style={revealDelay(t6)} aria-label="Console links">
-        <a href="#status">System status</a>
-        <span>|</span>
-        <a href="#security">Security protocol</a>
-        <span>|</span>
-        <a href="mailto:maajaanki2@gmail.com">Contact ops</a>
-      </nav>
+      <p className="login-page-tagline login-reveal" style={revealDelay(t4 + 80)}>
+        Where tradition meets the heat of innovation.
+      </p>
     </div>
   );
 }
