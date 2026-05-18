@@ -31,7 +31,7 @@ export function playNewOrderSound() {
     osc.connect(gain);
     gain.connect(ctx.destination);
     gain.gain.setValueAtTime(0, now + start);
-    gain.gain.linearRampToValueAtTime(0.22, now + start + 0.02);
+    gain.gain.linearRampToValueAtTime(0.62, now + start + 0.02);
     gain.gain.exponentialRampToValueAtTime(0.001, now + start + duration);
     osc.start(now + start);
     osc.stop(now + start + duration + 0.05);
