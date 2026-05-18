@@ -56,11 +56,7 @@ export function useNewOrderWatcher(enabled = true) {
 
       for (const o of newcomers) {
         known.add(o.id);
-        queueRef.current.push({
-          id: o.id,
-          customer_name: o.customer_name,
-          order_num: o.order_num,
-        });
+        queueRef.current.push(o);
       }
 
       if (showingRef.current) {

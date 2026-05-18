@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { getOrderPricing } from "../utils/orderPricing";
 
 export async function fetchMenuCategories() {
   return supabase
@@ -119,7 +120,7 @@ export async function fetchDashboardStats() {
 
   let ordersRes = await supabase
     .from("orders")
-    .select("id, customer_name, phone, placed_at");
+    .select("id, customer_name, phone, total, placed_at");
 
   let dailyField = null;
   if (!ordersRes.error) {
@@ -127,14 +128,14 @@ export async function fetchDashboardStats() {
   } else {
     ordersRes = await supabase
       .from("orders")
-      .select("id, customer_name, phone, created_at");
+      .select("id, customer_name, phone, total, created_at");
     if (!ordersRes.error) dailyField = "created_at";
   }
 
   if (ordersRes.error) {
     ordersRes = await supabase
       .from("orders")
-      .select("id, customer_name, phone");
+      .select("id, customer_name, phone, total");
   }
 
   if (ordersRes.error) return { error: ordersRes.error, stats: null };
@@ -143,10 +144,23 @@ export async function fetchDashboardStats() {
   const orders = ordersRes.data ?? [];
   const lines = itemsRes.data ?? [];
 
-  const revenue = lines.reduce(
-    (sum, row) => sum + Number(row.unit_price) * (row.qty ?? 1),
-    0
-  );
+  const itemsByOrder = new Map();
+  for (const row of lines) {
+    const list = itemsByOrder.get(row.order_id) ?? [];
+    list.push(row);
+    itemsByOrder.set(row.order_id, list);
+  }
+
+  let revenue = 0;
+  let discountsGiven = 0;
+  for (const order of orders) {
+    const pricing = getOrderPricing({
+      ...order,
+      order_items: itemsByOrder.get(order.id) ?? [],
+    });
+    revenue += pricing.total;
+    discountsGiven += pricing.discount;
+  }
 
   const phones = new Set(orders.map((o) => o.phone).filter(Boolean));
 
@@ -154,24 +168,27 @@ export async function fetchDashboardStats() {
   const startMs = new Date(start).getTime();
   const endMs = new Date(end).getTime();
 
-  const todayOrderIds = new Set(
-    hasDaily
-      ? orders
-          .filter((o) => {
-            const raw = o[dailyField];
-            if (!raw) return false;
-            const t = new Date(raw).getTime();
-            return t >= startMs && t <= endMs;
-          })
-          .map((o) => o.id)
-      : []
-  );
+  const todayOrders = hasDaily
+    ? orders.filter((o) => {
+        const raw = o[dailyField];
+        if (!raw) return false;
+        const t = new Date(raw).getTime();
+        return t >= startMs && t <= endMs;
+      })
+    : [];
 
-  const todayRevenue = hasDaily
-    ? lines
-        .filter((row) => todayOrderIds.has(row.order_id))
-        .reduce((sum, row) => sum + Number(row.unit_price) * (row.qty ?? 1), 0)
-    : 0;
+  const todayOrderIds = new Set(todayOrders.map((o) => o.id));
+
+  let todayRevenue = 0;
+  let todayDiscounts = 0;
+  for (const order of todayOrders) {
+    const pricing = getOrderPricing({
+      ...order,
+      order_items: itemsByOrder.get(order.id) ?? [],
+    });
+    todayRevenue += pricing.total;
+    todayDiscounts += pricing.discount;
+  }
 
   const todayOrderCount = hasDaily ? todayOrderIds.size : 0;
 
@@ -188,6 +205,8 @@ export async function fetchDashboardStats() {
       customerCount: phones.size || orders.length,
       todayOrderCount,
       todayRevenue,
+      discountsGiven,
+      todayDiscounts,
       hasDailyBreakdown: hasDaily,
       capacityPct,
     },

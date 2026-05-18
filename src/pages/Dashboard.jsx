@@ -267,6 +267,12 @@ export default function Dashboard() {
               </div>
               <p className="summary-card-kicker">Total revenue</p>
               <p className="summary-card-value">{formatInr(stats.revenue)}</p>
+              <p className="summary-card-meta">
+                After discounts
+                {stats.discountsGiven > 0
+                  ? ` · ${formatInr(stats.discountsGiven)} saved for customers`
+                  : ""}
+              </p>
               <div className="summary-progress" aria-hidden="true">
                 <div
                   className="summary-progress-fill summary-progress-fill--cyan"
@@ -309,7 +315,11 @@ export default function Dashboard() {
               </p>
               <p className="summary-card-meta">
                 {stats.hasDailyBreakdown
-                  ? "From orders placed today"
+                  ? `From orders placed today${
+                      stats.todayDiscounts > 0
+                        ? ` · ${formatInr(stats.todayDiscounts)} discounts`
+                        : ""
+                    }`
                   : "Add placed_at or created_at on orders for daily totals"}
               </p>
               <div className="summary-progress" aria-hidden="true">

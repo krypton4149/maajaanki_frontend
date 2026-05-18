@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router-dom";
+import OrderPricingSummary from "../components/OrderPricingSummary";
 import {
   fetchOrdersWithItems,
-  orderGrandTotal,
   orderLineTotal,
   setOrderOutForDelivery,
 } from "../services/queries";
+import { getOrderPricing } from "../utils/orderPricing";
 
 function formatInr(value) {
   const n = Number(value);
@@ -163,12 +164,6 @@ function IconX() {
 
 function OrderDetailModal({ order, statusKey, onClose, onMarkDelivery }) {
   const lines = order.order_items ?? [];
-  const computedTotal = orderGrandTotal(lines);
-  const storedTotal =
-    order.total != null && order.total !== ""
-      ? Number(order.total)
-      : NaN;
-  const total = !Number.isNaN(storedTotal) ? storedTotal : computedTotal;
   const status = STATUS_LOOKUP[statusKey] ?? STATUS_LOOKUP.confirmed;
 
   useEffect(() => {
@@ -275,10 +270,7 @@ function OrderDetailModal({ order, statusKey, onClose, onMarkDelivery }) {
                 </tbody>
               </table>
             </div>
-            <div className="order-modal-total">
-              <span>Total {order.currency ? `(${order.currency})` : ""}</span>
-              <span>{formatInr(total)}</span>
-            </div>
+            <OrderPricingSummary order={order} />
           </div>
         </div>
 
@@ -513,6 +505,7 @@ export default function Orders() {
                       <th>Customer name</th>
                       <th>Phone number</th>
                       <th>Order items</th>
+                      <th>Total</th>
                       <th>Status</th>
                       <th>Actions</th>
                     </tr>
@@ -529,6 +522,7 @@ export default function Orders() {
                       const status = STATUS_LOOKUP[statusKey];
                       const isOut = order.out_for_delivery === true;
                       const isPending = pendingOrderId === order.id;
+                      const pricing = getOrderPricing(order);
 
                       return (
                         <tr key={order.id}>
@@ -564,6 +558,18 @@ export default function Orders() {
                               )}
                               {lines.length === 0 && (
                                 <span className="item-tag">—</span>
+                              )}
+                            </div>
+                          </td>
+                          <td data-label="Total">
+                            <div className="cell-order-total">
+                              <span className="cell-order-total-amount">
+                                {formatInr(pricing.total)}
+                              </span>
+                              {pricing.hasDiscount && (
+                                <span className="cell-order-total-discount">
+                                  −{formatInr(pricing.discount)}
+                                </span>
                               )}
                             </div>
                           </td>

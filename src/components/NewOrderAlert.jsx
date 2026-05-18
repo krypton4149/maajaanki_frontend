@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import OrderPricingSummary from "./OrderPricingSummary";
 import { unlockOrderNotificationSound } from "../utils/orderNotificationSound";
 
 function IconBellRing() {
@@ -90,6 +91,8 @@ export default function NewOrderAlert({ order, onDismiss }) {
           ) : null}
           .
         </p>
+
+        <OrderPricingSummary order={order} className="new-order-alert-pricing" />
 
         <div className="new-order-alert-actions">
           <button type="button" className="btn btn-primary" onClick={handleViewOrders}>
