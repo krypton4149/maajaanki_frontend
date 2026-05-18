@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { logout } from "../auth";
+import NewOrderAlert from "./NewOrderAlert";
+import { useNewOrderWatcher } from "../hooks/useNewOrderWatcher";
+import { unlockOrderNotificationSound } from "../utils/orderNotificationSound";
 
 function IconDashboard(props) {
   return (
@@ -85,6 +88,19 @@ const searchPlaceholders = {
 export default function AdminLayout() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
+  const { activeAlert, dismissAlert } = useNewOrderWatcher(true);
+
+  useEffect(() => {
+    function unlock() {
+      unlockOrderNotificationSound();
+    }
+    window.addEventListener("pointerdown", unlock, { once: true });
+    window.addEventListener("keydown", unlock, { once: true });
+    return () => {
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
+    };
+  }, []);
   const [navOpen, setNavOpen] = useState(false);
   const [ordersSearch, setOrdersSearch] = useState("");
   const [menuSearch, setMenuSearch] = useState("");
@@ -315,6 +331,8 @@ export default function AdminLayout() {
           </div>
         </main>
       </div>
+
+      <NewOrderAlert order={activeAlert} onDismiss={dismissAlert} />
     </div>
   );
 }
