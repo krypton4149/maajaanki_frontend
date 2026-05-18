@@ -29,6 +29,11 @@ const ORDERS_LIST_COLUMNS = `
       address,
       status,
       out_for_delivery,
+      subtotal,
+      discount_amount,
+      coupon_code,
+      payment_method,
+      payment_status,
       total,
       currency,
       placed_at,
@@ -54,7 +59,7 @@ export async function fetchOrdersWithItems() {
     supabase
       .from("orders")
       .select(
-        "id, order_num, customer_name, phone, whatsapp, address, status, out_for_delivery, total, currency, placed_at"
+        "id, order_num, customer_name, phone, whatsapp, address, status, out_for_delivery, subtotal, discount_amount, coupon_code, payment_method, payment_status, total, currency, placed_at"
       )
       .order("order_num", { ascending: false }),
     supabase
@@ -120,7 +125,9 @@ export async function fetchDashboardStats() {
 
   let ordersRes = await supabase
     .from("orders")
-    .select("id, customer_name, phone, total, placed_at");
+    .select(
+      "id, order_num, customer_name, phone, subtotal, discount_amount, coupon_code, payment_method, total, placed_at"
+    );
 
   let dailyField = null;
   if (!ordersRes.error) {
@@ -128,14 +135,18 @@ export async function fetchDashboardStats() {
   } else {
     ordersRes = await supabase
       .from("orders")
-      .select("id, customer_name, phone, total, created_at");
+      .select(
+        "id, order_num, customer_name, phone, subtotal, discount_amount, coupon_code, payment_method, total, created_at"
+      );
     if (!ordersRes.error) dailyField = "created_at";
   }
 
   if (ordersRes.error) {
     ordersRes = await supabase
       .from("orders")
-      .select("id, customer_name, phone, total");
+      .select(
+        "id, order_num, customer_name, phone, subtotal, discount_amount, coupon_code, payment_method, total"
+      );
   }
 
   if (ordersRes.error) return { error: ordersRes.error, stats: null };
@@ -151,15 +162,20 @@ export async function fetchDashboardStats() {
     itemsByOrder.set(row.order_id, list);
   }
 
+  let grossSubtotal = 0;
   let revenue = 0;
   let discountsGiven = 0;
+  let ordersWithDiscount = 0;
+  const ordersWithItems = [];
+
   for (const order of orders) {
-    const pricing = getOrderPricing({
-      ...order,
-      order_items: itemsByOrder.get(order.id) ?? [],
-    });
+    const orderItems = itemsByOrder.get(order.id) ?? [];
+    const pricing = getOrderPricing({ ...order, order_items: orderItems });
+    grossSubtotal += pricing.subtotal;
     revenue += pricing.total;
     discountsGiven += pricing.discount;
+    if (pricing.hasDiscount) ordersWithDiscount += 1;
+    ordersWithItems.push({ ...order, order_items: orderItems, pricing });
   }
 
   const phones = new Set(orders.map((o) => o.phone).filter(Boolean));
@@ -179,16 +195,24 @@ export async function fetchDashboardStats() {
 
   const todayOrderIds = new Set(todayOrders.map((o) => o.id));
 
+  let todayGrossSubtotal = 0;
   let todayRevenue = 0;
   let todayDiscounts = 0;
+  let todayOrdersWithDiscount = 0;
   for (const order of todayOrders) {
     const pricing = getOrderPricing({
       ...order,
       order_items: itemsByOrder.get(order.id) ?? [],
     });
+    todayGrossSubtotal += pricing.subtotal;
     todayRevenue += pricing.total;
     todayDiscounts += pricing.discount;
+    if (pricing.hasDiscount) todayOrdersWithDiscount += 1;
   }
+
+  const recentOrders = [...ordersWithItems]
+    .sort((a, b) => Number(b.order_num ?? 0) - Number(a.order_num ?? 0))
+    .slice(0, 6);
 
   const todayOrderCount = hasDaily ? todayOrderIds.size : 0;
 
@@ -201,12 +225,17 @@ export async function fetchDashboardStats() {
     error: null,
     stats: {
       orderCount: orders.length,
+      grossSubtotal,
       revenue,
+      discountsGiven,
+      ordersWithDiscount,
       customerCount: phones.size || orders.length,
       todayOrderCount,
+      todayGrossSubtotal,
       todayRevenue,
-      discountsGiven,
       todayDiscounts,
+      todayOrdersWithDiscount,
+      recentOrders,
       hasDailyBreakdown: hasDaily,
       capacityPct,
     },

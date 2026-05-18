@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import DashboardSalesPanel from "../components/DashboardSalesPanel";
 import { fetchDashboardStats } from "../services/queries";
 
 function formatInr(value) {
@@ -265,13 +266,23 @@ export default function Dashboard() {
                 </div>
                 <span className="summary-badge summary-badge--green">+12.5%</span>
               </div>
-              <p className="summary-card-kicker">Total revenue</p>
+              <p className="summary-card-kicker">Total collected</p>
               <p className="summary-card-value">{formatInr(stats.revenue)}</p>
               <p className="summary-card-meta">
-                After discounts
-                {stats.discountsGiven > 0
-                  ? ` · ${formatInr(stats.discountsGiven)} saved for customers`
-                  : ""}
+                {stats.discountsGiven > 0 ? (
+                  <>
+                    <span className="summary-stat-pair">
+                      <span>Subtotal</span>
+                      <span>{formatInr(stats.grossSubtotal)}</span>
+                    </span>
+                    <span className="summary-stat-pair summary-stat-pair--discount">
+                      <span>Discount</span>
+                      <span>−{formatInr(stats.discountsGiven)}</span>
+                    </span>
+                  </>
+                ) : (
+                  <>Gross {formatInr(stats.grossSubtotal)} · no discounts applied</>
+                )}
               </p>
               <div className="summary-progress" aria-hidden="true">
                 <div
@@ -314,13 +325,24 @@ export default function Dashboard() {
                   : "—"}
               </p>
               <p className="summary-card-meta">
-                {stats.hasDailyBreakdown
-                  ? `From orders placed today${
-                      stats.todayDiscounts > 0
-                        ? ` · ${formatInr(stats.todayDiscounts)} discounts`
-                        : ""
-                    }`
-                  : "Add placed_at or created_at on orders for daily totals"}
+                {stats.hasDailyBreakdown ? (
+                  stats.todayDiscounts > 0 ? (
+                    <>
+                      <span className="summary-stat-pair">
+                        <span>Subtotal</span>
+                        <span>{formatInr(stats.todayGrossSubtotal)}</span>
+                      </span>
+                      <span className="summary-stat-pair summary-stat-pair--discount">
+                        <span>Discount</span>
+                        <span>−{formatInr(stats.todayDiscounts)}</span>
+                      </span>
+                    </>
+                  ) : (
+                    `Gross ${formatInr(stats.todayGrossSubtotal)} · no discounts today`
+                  )
+                ) : (
+                  "Add placed_at or created_at on orders for daily totals"
+                )}
               </p>
               <div className="summary-progress" aria-hidden="true">
                 <div
@@ -367,6 +389,8 @@ export default function Dashboard() {
               </div>
             </article>
           </div>
+
+          <DashboardSalesPanel stats={stats} />
 
           <section className="prediction-banner" aria-labelledby="prediction-heading">
             <div className="prediction-banner-bg" aria-hidden="true" />

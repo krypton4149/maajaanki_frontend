@@ -1,4 +1,4 @@
-import { getOrderPricing } from "../utils/orderPricing";
+import { formatPaymentMethod, getOrderPricing } from "../utils/orderPricing";
 
 function formatInr(value) {
   const n = Number(value);
@@ -10,8 +10,9 @@ function formatInr(value) {
  * WhatsApp-style subtotal → coupon/discount → total block.
  */
 export default function OrderPricingSummary({ order, className = "" }) {
-  const { subtotal, discount, total, hasDiscount, couponLabel } =
+  const { subtotal, discount, total, hasDiscount, couponLabel, paymentMethod } =
     getOrderPricing(order);
+  const paymentLabel = formatPaymentMethod(paymentMethod);
 
   return (
     <div className={`order-pricing${className ? ` ${className}` : ""}`}>
@@ -37,6 +38,12 @@ export default function OrderPricingSummary({ order, className = "" }) {
         <span>Total</span>
         <span>{formatInr(total)}</span>
       </div>
+      {paymentLabel ? (
+        <div className="order-pricing-row order-pricing-row--muted">
+          <span>Payment</span>
+          <span>{paymentLabel}</span>
+        </div>
+      ) : null}
     </div>
   );
 }

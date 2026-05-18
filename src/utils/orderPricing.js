@@ -42,7 +42,12 @@ export function getOrderPricing(order) {
 
   const hasDiscount = discount > 0.009;
 
-  const couponCode = (order?.coupon_code ?? order?.coupon ?? "")
+  const couponCode = (
+    order?.coupon_code ??
+    order?.couponCode ??
+    order?.coupon ??
+    ""
+  )
     .toString()
     .trim();
   const couponPercentRaw =
@@ -69,6 +74,17 @@ export function getOrderPricing(order) {
     discount,
     total,
     hasDiscount,
+    couponCode,
     couponLabel,
+    paymentMethod: order?.payment_method ?? order?.paymentMethod ?? "",
   };
+}
+
+/** Human label for `payment_method` from API (`cod` | `upi`). */
+export function formatPaymentMethod(method) {
+  const key = (method ?? "").toString().trim().toLowerCase();
+  if (!key) return "";
+  if (key === "cod") return "Cash on delivery";
+  if (key === "upi") return "UPI";
+  return method;
 }
