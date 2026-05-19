@@ -126,7 +126,7 @@ export async function fetchDashboardStats() {
   let ordersRes = await supabase
     .from("orders")
     .select(
-      "id, order_num, customer_name, phone, subtotal, discount_amount, coupon_code, payment_method, total, placed_at"
+      "id, order_num, customer_name, phone, status, out_for_delivery, subtotal, discount_amount, coupon_code, payment_method, total, placed_at"
     );
 
   let dailyField = null;
@@ -136,7 +136,7 @@ export async function fetchDashboardStats() {
     ordersRes = await supabase
       .from("orders")
       .select(
-        "id, order_num, customer_name, phone, subtotal, discount_amount, coupon_code, payment_method, total, created_at"
+        "id, order_num, customer_name, phone, status, out_for_delivery, subtotal, discount_amount, coupon_code, payment_method, total, created_at"
       );
     if (!ordersRes.error) dailyField = "created_at";
   }
@@ -145,7 +145,7 @@ export async function fetchDashboardStats() {
     ordersRes = await supabase
       .from("orders")
       .select(
-        "id, order_num, customer_name, phone, subtotal, discount_amount, coupon_code, payment_method, total"
+        "id, order_num, customer_name, phone, status, out_for_delivery, subtotal, discount_amount, coupon_code, payment_method, total"
       );
   }
 
