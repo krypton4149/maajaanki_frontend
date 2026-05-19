@@ -1,5 +1,24 @@
+import { emojiForMenuItem } from "../data/menuItemEmoji";
 import { supabase } from "./supabase";
 import { getOrderPricing } from "../utils/orderPricing";
+
+/** "DELUXE THALI" → "Deluxe Thali" for display. */
+function formatDishName(name) {
+  const s = (name ?? "").trim();
+  if (!s) return "";
+  return s
+    .toLowerCase()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function resolveOrderItemName(row, menuById) {
+  let name = (row.item_name ?? "").trim();
+  if ((!name || name.toLowerCase() === "item") && row.menu_item_id) {
+    const fromMenu = menuById.get(row.menu_item_id);
+    if (fromMenu) name = fromMenu;
+  }
+  return formatDishName(name) || "Unknown item";
+}
 
 export async function fetchMenuCategories() {
   return supabase
@@ -176,11 +195,18 @@ function trendPct(today, yesterday) {
 }
 
 export async function fetchDashboardStats() {
-  const itemsRes = await supabase
-    .from("order_items")
-    .select("order_id, unit_price, qty");
+  const [itemsRes, menuRes] = await Promise.all([
+    supabase
+      .from("order_items")
+      .select("order_id, unit_price, qty, item_name, menu_item_id, veg"),
+    supabase.from("menu_items").select("id, name"),
+  ]);
 
   if (itemsRes.error) return { error: itemsRes.error, stats: null };
+
+  const menuById = new Map(
+    (menuRes.data ?? []).map((m) => [m.id, m.name])
+  );
 
   let ordersRes = await supabase
     .from("orders")
@@ -275,7 +301,7 @@ export async function fetchDashboardStats() {
 
   const recentOrders = [...ordersWithItems]
     .sort((a, b) => Number(b.order_num ?? 0) - Number(a.order_num ?? 0))
-    .slice(0, 6);
+    .slice(0, 5);
 
   const todayOrderCount = hasDaily ? todayOrderIds.size : 0;
 
@@ -306,14 +332,22 @@ export async function fetchDashboardStats() {
   const dishCounts = new Map();
   for (const row of lines) {
     if (!todayOrderIds.has(row.order_id)) continue;
-    const name = (row.item_name ?? "Item").trim();
+    const name = resolveOrderItemName(row, menuById);
     const qty = row.qty ?? 1;
-    dishCounts.set(name, (dishCounts.get(name) ?? 0) + qty);
+    const prev = dishCounts.get(name) ?? { qty: 0, veg: true };
+    dishCounts.set(name, {
+      qty: prev.qty + qty,
+      veg: prev.veg && row.veg !== false,
+    });
   }
   const topDishes = [...dishCounts.entries()]
-    .sort((a, b) => b[1] - a[1])
+    .sort((a, b) => b[1].qty - a[1].qty)
     .slice(0, 3)
-    .map(([name, qty]) => ({ name, qty }));
+    .map(([name, meta]) => ({
+      name,
+      qty: meta.qty,
+      emoji: emojiForMenuItem(name, "", meta.veg),
+    }));
 
   const revenueByDay = [];
   for (let offset = 6; offset >= 0; offset -= 1) {

@@ -85,6 +85,45 @@ const searchPlaceholders = {
   "/support": "Search for help articles, FAQs…",
 };
 
+const PAGE_META = {
+  "/": {
+    crumb: "Home",
+    title: "Overview Dashboard",
+    subtitle: "Sales, kitchen flow & live metrics",
+  },
+  "/orders": {
+    crumb: "Operations",
+    title: "Live Orders",
+    subtitle: "Queue, riders & customer contact",
+  },
+  "/menu": {
+    crumb: "Catalog",
+    title: "Menu Manager",
+    subtitle: "Dishes, prices & availability",
+  },
+  "/settings": {
+    crumb: "Admin",
+    title: "Settings",
+    subtitle: "Preferences & account",
+  },
+  "/support": {
+    crumb: "Help",
+    title: "Support",
+    subtitle: "Runbooks & contacts",
+  },
+};
+
+function formatTopbarClock() {
+  return new Intl.DateTimeFormat("en-IN", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).format(new Date());
+}
+
 export default function AdminLayout() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
@@ -102,6 +141,7 @@ export default function AdminLayout() {
     };
   }, []);
   const [navOpen, setNavOpen] = useState(false);
+  const [clockLabel, setClockLabel] = useState(formatTopbarClock);
   const [ordersSearch, setOrdersSearch] = useState("");
   const [menuSearch, setMenuSearch] = useState("");
   const [settingsSearch, setSettingsSearch] = useState("");
@@ -131,6 +171,12 @@ export default function AdminLayout() {
   useEffect(() => {
     setNavOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    setClockLabel(formatTopbarClock());
+    const id = setInterval(() => setClockLabel(formatTopbarClock()), 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     if (!navOpen) return;
@@ -173,6 +219,24 @@ export default function AdminLayout() {
 
   const navClass = ({ isActive }) =>
     `admin-nav-link${isActive ? " admin-nav-link--active" : ""}`;
+
+  const page =
+    PAGE_META[pathname] ?? {
+      crumb: "Admin",
+      title: "Maa Jaanki",
+      subtitle: "Restaurant console",
+    };
+
+  const PageIcon =
+    pathname === "/orders"
+      ? IconOrders
+      : pathname === "/menu"
+        ? IconMenu
+        : pathname === "/settings"
+          ? IconSettings
+          : pathname === "/support"
+            ? IconSupport
+            : IconDashboard;
 
   return (
     <div className={`admin-root${navOpen ? " admin-root--nav-open" : ""}`}>
@@ -246,9 +310,7 @@ export default function AdminLayout() {
       </aside>
 
       <div className="admin-canvas">
-        <header
-          className={`admin-topbar${isDashboard ? " admin-topbar--dashboard" : ""}`}
-        >
+        <header className="admin-topbar">
           <button
             type="button"
             className="admin-menu-btn"
@@ -259,54 +321,82 @@ export default function AdminLayout() {
             <IconHamburger />
           </button>
 
-          {isDashboard ? (
-            <div className="admin-topbar-spacer" aria-hidden="true" />
-          ) : (
-            <label className="admin-search" htmlFor="admin-global-search">
-              <IconSearch aria-hidden="true" />
-              <input
-                id="admin-global-search"
-                type="search"
-                placeholder={placeholder}
-                autoComplete="off"
-                value={
-                  isOrdersRoute
-                    ? ordersSearch
-                    : isMenuRoute
-                      ? menuSearch
-                      : isSettingsRoute
-                        ? settingsSearch
-                        : isSupportRoute
-                          ? supportSearch
-                          : ""
-                }
-                onChange={(e) => {
-                  const v = e.target.value;
-                  if (isOrdersRoute) setOrdersSearch(v);
-                  else if (isMenuRoute) setMenuSearch(v);
-                  else if (isSettingsRoute) setSettingsSearch(v);
-                  else if (isSupportRoute) setSupportSearch(v);
-                }}
-                aria-label={placeholder}
-              />
-            </label>
-          )}
+          <div className="admin-topbar-context">
+            <span className="admin-topbar-context-icon" aria-hidden="true">
+              <PageIcon />
+            </span>
+            <div className="admin-topbar-context-text">
+              <p className="admin-topbar-crumb">{page.crumb}</p>
+              <h1 className="admin-topbar-title">{page.title}</h1>
+              <p className="admin-topbar-subtitle">{page.subtitle}</p>
+            </div>
+          </div>
+
+          <div className="admin-topbar-center">
+            {isDashboard && (
+              <nav className="admin-topbar-quick" aria-label="Quick links">
+                <NavLink
+                  to="/orders"
+                  className={({ isActive }) =>
+                    `admin-topbar-chip${isActive ? " admin-topbar-chip--active" : ""}`
+                  }
+                >
+                  <IconOrders />
+                  Live Orders
+                </NavLink>
+                <NavLink
+                  to="/menu"
+                  className={({ isActive }) =>
+                    `admin-topbar-chip${isActive ? " admin-topbar-chip--active" : ""}`
+                  }
+                >
+                  <IconMenu />
+                  Menu
+                </NavLink>
+              </nav>
+            )}
+            {!isDashboard && (
+              <label className="admin-search" htmlFor="admin-global-search">
+                <IconSearch aria-hidden="true" />
+                <input
+                  id="admin-global-search"
+                  type="search"
+                  placeholder={placeholder}
+                  autoComplete="off"
+                  value={
+                    isOrdersRoute
+                      ? ordersSearch
+                      : isMenuRoute
+                        ? menuSearch
+                        : isSettingsRoute
+                          ? settingsSearch
+                          : isSupportRoute
+                            ? supportSearch
+                            : ""
+                  }
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (isOrdersRoute) setOrdersSearch(v);
+                    else if (isMenuRoute) setMenuSearch(v);
+                    else if (isSettingsRoute) setSettingsSearch(v);
+                    else if (isSupportRoute) setSupportSearch(v);
+                  }}
+                  aria-label={placeholder}
+                />
+              </label>
+            )}
+          </div>
 
           <div className="admin-topbar-actions">
-            {pathname === "/orders" && (
-              <div className="admin-toggle-row">
-                <span>Auto-assign Delivery</span>
-                <button
-                  type="button"
-                  className="admin-toggle admin-toggle--on"
-                  aria-pressed="true"
-                  aria-label="Auto-assign delivery on"
-                >
-                  <span className="admin-toggle-knob" />
-                </button>
-              </div>
-            )}
-
+            <div className="admin-topbar-meta">
+              <span className="admin-topbar-live" title="Connected to live data">
+                <span className="live-dot" aria-hidden="true" />
+                Live
+              </span>
+              <time className="admin-topbar-clock" dateTime={new Date().toISOString()}>
+                {clockLabel}
+              </time>
+            </div>
             <div className="admin-user">
               <div className="admin-user-text">
                 <span className="admin-user-name">Maa Jaanki</span>

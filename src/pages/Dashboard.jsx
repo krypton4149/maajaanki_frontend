@@ -280,24 +280,11 @@ export default function Dashboard() {
 
   return (
     <>
-      <header className={`page-head page-head--${stats?.kitchenLoad ?? "light"}`}>
-        <div className="page-head-text">
-          <h1 className="page-title">Overview Dashboard</h1>
-          <p className="page-subtitle">
-            Live kitchen and sales snapshot for Maa Jaanki Restaurant.
-          </p>
-        </div>
-        <div className="page-head-actions">
-          <div className="page-date-pill page-date-pill--live">
-            <span className="live-dot" aria-hidden="true" />
-            <IconCalendar />
-            {formatDatePill()}
-          </div>
-          {lastUpdated && !loading && (
-            <p className="page-last-updated">{formatLastUpdated(lastUpdated)}</p>
-          )}
-        </div>
-      </header>
+      {lastUpdated && !loading && (
+        <p className="page-last-updated page-last-updated--inline" role="status">
+          {formatLastUpdated(lastUpdated)}
+        </p>
+      )}
 
       {loading && (
         <div className="ds-skeleton-grid" aria-busy="true" aria-label="Loading dashboard">

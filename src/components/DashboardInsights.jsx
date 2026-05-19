@@ -128,9 +128,11 @@ export default function DashboardInsights({ stats }) {
                 <li key={dish.name}>
                   <span className="dash-top-dishes__rank">{i + 1}</span>
                   <span className="dash-top-dishes__emoji" aria-hidden="true">
-                    {emojiForMenuItem(dish.name)}
+                    {dish.emoji ?? emojiForMenuItem(dish.name)}
                   </span>
-                  <span className="dash-top-dishes__name">{dish.name}</span>
+                  <span className="dash-top-dishes__name" title={dish.name}>
+                    {dish.name}
+                  </span>
                   <span className="dash-top-dishes__qty">{dish.qty} sold</span>
                 </li>
               ))}
