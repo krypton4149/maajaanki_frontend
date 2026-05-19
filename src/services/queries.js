@@ -108,12 +108,71 @@ export function orderGrandTotal(orderItems) {
   return orderItems.reduce((sum, row) => sum + orderLineTotal(row), 0);
 }
 
-function localDayIsoRange() {
+function localDayIsoRange(offsetDays = 0) {
   const start = new Date();
+  start.setDate(start.getDate() + offsetDays);
   start.setHours(0, 0, 0, 0);
-  const end = new Date();
+  const end = new Date(start);
   end.setHours(23, 59, 59, 999);
-  return { start: start.toISOString(), end: end.toISOString() };
+  return {
+    start: start.toISOString(),
+    end: end.toISOString(),
+    startMs: start.getTime(),
+    endMs: end.getTime(),
+  };
+}
+
+function orderTimestamp(order, dailyField) {
+  const raw = dailyField ? order[dailyField] : null;
+  if (!raw) return null;
+  const t = new Date(raw).getTime();
+  return Number.isNaN(t) ? null : t;
+}
+
+function ordersInDayRange(orders, dailyField, startMs, endMs) {
+  if (!dailyField) return [];
+  return orders.filter((o) => {
+    const t = orderTimestamp(o, dailyField);
+    return t != null && t >= startMs && t <= endMs;
+  });
+}
+
+function sumPricingForOrders(orders, itemsByOrder) {
+  let grossSubtotal = 0;
+  let revenue = 0;
+  let discounts = 0;
+  for (const order of orders) {
+    const pricing = getOrderPricing({
+      ...order,
+      order_items: itemsByOrder.get(order.id) ?? [],
+    });
+    grossSubtotal += pricing.subtotal;
+    revenue += pricing.total;
+    discounts += pricing.discount;
+  }
+  return { grossSubtotal, revenue, discounts };
+}
+
+function pipelineCounts(orders) {
+  let confirmed = 0;
+  let preparing = 0;
+  let outForDelivery = 0;
+  for (const o of orders) {
+    if (o.out_for_delivery === true) {
+      outForDelivery += 1;
+      continue;
+    }
+    const st = (o.status || "").toLowerCase();
+    if (st.includes("prep")) preparing += 1;
+    else confirmed += 1;
+  }
+  const total = confirmed + preparing + outForDelivery;
+  return { confirmed, preparing, outForDelivery, total };
+}
+
+function trendPct(today, yesterday) {
+  if (yesterday <= 0) return today > 0 ? 100 : null;
+  return Math.round(((today - yesterday) / yesterday) * 100);
 }
 
 export async function fetchDashboardStats() {
@@ -180,35 +239,39 @@ export async function fetchDashboardStats() {
 
   const phones = new Set(orders.map((o) => o.phone).filter(Boolean));
 
-  const { start, end } = localDayIsoRange();
-  const startMs = new Date(start).getTime();
-  const endMs = new Date(end).getTime();
+  const todayRange = localDayIsoRange(0);
+  const yesterdayRange = localDayIsoRange(-1);
 
   const todayOrders = hasDaily
-    ? orders.filter((o) => {
-        const raw = o[dailyField];
-        if (!raw) return false;
-        const t = new Date(raw).getTime();
-        return t >= startMs && t <= endMs;
-      })
+    ? ordersInDayRange(orders, dailyField, todayRange.startMs, todayRange.endMs)
+    : [];
+  const yesterdayOrders = hasDaily
+    ? ordersInDayRange(
+        orders,
+        dailyField,
+        yesterdayRange.startMs,
+        yesterdayRange.endMs
+      )
     : [];
 
   const todayOrderIds = new Set(todayOrders.map((o) => o.id));
 
-  let todayGrossSubtotal = 0;
-  let todayRevenue = 0;
-  let todayDiscounts = 0;
+  const todayTotals = sumPricingForOrders(todayOrders, itemsByOrder);
+  const todayGrossSubtotal = todayTotals.grossSubtotal;
+  const todayRevenue = todayTotals.revenue;
+  const todayDiscounts = todayTotals.discounts;
   let todayOrdersWithDiscount = 0;
   for (const order of todayOrders) {
-    const pricing = getOrderPricing({
+    const p = getOrderPricing({
       ...order,
       order_items: itemsByOrder.get(order.id) ?? [],
     });
-    todayGrossSubtotal += pricing.subtotal;
-    todayRevenue += pricing.total;
-    todayDiscounts += pricing.discount;
-    if (pricing.hasDiscount) todayOrdersWithDiscount += 1;
+    if (p.hasDiscount) todayOrdersWithDiscount += 1;
   }
+
+  const yesterdayTotals = sumPricingForOrders(yesterdayOrders, itemsByOrder);
+  const yesterdayRevenue = yesterdayTotals.revenue;
+  const yesterdayOrderCount = yesterdayOrders.length;
 
   const recentOrders = [...ordersWithItems]
     .sort((a, b) => Number(b.order_num ?? 0) - Number(a.order_num ?? 0))
@@ -220,6 +283,65 @@ export async function fetchDashboardStats() {
     100,
     orders.length === 0 ? 0 : Math.round((orders.length / 50) * 100) || 12
   );
+
+  const pipeline = pipelineCounts(orders);
+
+  const paymentSplit = {
+    cod: { count: 0, total: 0 },
+    upi: { count: 0, total: 0 },
+    other: { count: 0, total: 0 },
+  };
+  for (const order of todayOrders) {
+    const pricing = getOrderPricing({
+      ...order,
+      order_items: itemsByOrder.get(order.id) ?? [],
+    });
+    const key = (order.payment_method ?? "").toString().trim().toLowerCase();
+    const bucket =
+      key === "cod" ? "cod" : key === "upi" ? "upi" : "other";
+    paymentSplit[bucket].count += 1;
+    paymentSplit[bucket].total += pricing.total;
+  }
+
+  const dishCounts = new Map();
+  for (const row of lines) {
+    if (!todayOrderIds.has(row.order_id)) continue;
+    const name = (row.item_name ?? "Item").trim();
+    const qty = row.qty ?? 1;
+    dishCounts.set(name, (dishCounts.get(name) ?? 0) + qty);
+  }
+  const topDishes = [...dishCounts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([name, qty]) => ({ name, qty }));
+
+  const revenueByDay = [];
+  for (let offset = 6; offset >= 0; offset -= 1) {
+    const range = localDayIsoRange(-offset);
+    const dayOrders = hasDaily
+      ? ordersInDayRange(orders, dailyField, range.startMs, range.endMs)
+      : [];
+    const { revenue: dayRevenue } = sumPricingForOrders(dayOrders, itemsByOrder);
+    const d = new Date(range.startMs);
+    revenueByDay.push({
+      key: range.start.slice(0, 10),
+      label: new Intl.DateTimeFormat("en-IN", { weekday: "short" }).format(d),
+      shortLabel: new Intl.DateTimeFormat("en-IN", {
+        day: "numeric",
+        month: "short",
+      }).format(d),
+      revenue: dayRevenue,
+      orderCount: dayOrders.length,
+      isToday: offset === 0,
+    });
+  }
+
+  const maxDayRevenue = Math.max(...revenueByDay.map((d) => d.revenue), 1);
+
+  const hour = new Date().getHours();
+  const isRushWindow = hour >= 19 && hour < 22;
+  const kitchenLoad =
+    pipeline.total >= 10 ? "busy" : pipeline.total >= 5 ? "moderate" : "light";
 
   return {
     error: null,
@@ -235,9 +357,21 @@ export async function fetchDashboardStats() {
       todayRevenue,
       todayDiscounts,
       todayOrdersWithDiscount,
+      yesterdayRevenue,
+      yesterdayOrderCount,
+      revenueTrendPct: trendPct(todayRevenue, yesterdayRevenue),
+      ordersTrendPct: trendPct(todayOrderCount, yesterdayOrderCount),
       recentOrders,
       hasDailyBreakdown: hasDaily,
       capacityPct,
+      pipeline,
+      paymentSplit,
+      topDishes,
+      revenueByDay,
+      maxDayRevenue,
+      isRushWindow,
+      showRushBanner: isRushWindow || todayOrderCount >= 8,
+      kitchenLoad,
     },
   };
 }

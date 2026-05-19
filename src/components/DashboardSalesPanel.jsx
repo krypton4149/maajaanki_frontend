@@ -203,6 +203,7 @@ export default function DashboardSalesPanel({ stats }) {
   if (!stats) return null;
 
   const openOrders = () => navigate("/orders");
+  const openOrder = (order) => navigate(`/orders?order=${order.id}`);
 
   return (
     <section className="dashboard-sales" aria-labelledby="dashboard-sales-heading">
@@ -270,7 +271,7 @@ export default function DashboardSalesPanel({ stats }) {
         <article className="dashboard-sales-card dashboard-sales-card--wide">
           <div className="dashboard-sales-card-head dashboard-sales-card-head--recent">
             <h3>Recent orders</h3>
-            <p className="dashboard-recent-hint">Tap a row to open Live Orders</p>
+            <p className="dashboard-recent-hint">Tap a row to view order details</p>
           </div>
 
           {stats.recentOrders?.length > 0 ? (
@@ -286,7 +287,7 @@ export default function DashboardSalesPanel({ stats }) {
                     key={order.id}
                     order={order}
                     index={index}
-                    onOpen={openOrders}
+                    onOpen={() => openOrder(order)}
                   />
                 ))}
               </div>

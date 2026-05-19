@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import DashboardHero from "../components/DashboardHero";
+import DashboardInsights from "../components/DashboardInsights";
 import DashboardSalesPanel from "../components/DashboardSalesPanel";
 import { fetchDashboardStats } from "../services/queries";
+
+const DASHBOARD_POLL_MS = 15_000;
 
 function formatInr(value) {
   const n = Number(value);
@@ -15,6 +19,44 @@ function formatDatePill() {
     month: "short",
     year: "numeric",
   }).format(new Date());
+}
+
+function formatLastUpdated(date) {
+  if (!date) return "";
+  const sec = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (sec < 12) return "Updated just now";
+  if (sec < 60) return `Updated ${sec}s ago`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `Updated ${min}m ago`;
+  return new Intl.DateTimeFormat("en-IN", {
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function TrendBadge({ pct, fallback, live = false }) {
+  if (pct == null || Number.isNaN(pct)) {
+    return (
+      <span
+        className={`summary-badge ${live ? "summary-badge--live" : "summary-badge--neutral"}`}
+      >
+        {fallback}
+      </span>
+    );
+  }
+  if (pct === 0) {
+    return (
+      <span className="summary-badge summary-badge--neutral">→ vs yesterday</span>
+    );
+  }
+  const up = pct > 0;
+  return (
+    <span
+      className={`summary-badge ${up ? "summary-badge--green" : "summary-badge--red"}`}
+    >
+      {up ? "↑" : "↓"} {Math.abs(pct)}% vs yesterday
+    </span>
+  );
 }
 
 function IconBill() {
@@ -159,6 +201,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [staffingModalOpen, setStaffingModalOpen] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [, setTick] = useState(0);
 
   const closeStaffingModal = useCallback(() => setStaffingModalOpen(false), []);
 
@@ -177,25 +221,35 @@ export default function Dashboard() {
   }, [navigate]);
 
   useEffect(() => {
+    const tickId = setInterval(() => setTick((n) => n + 1), 5000);
+    return () => clearInterval(tickId);
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
 
-    async function load() {
-      setLoading(true);
-      setError(null);
+    async function load(silent) {
+      if (!silent) {
+        setLoading(true);
+        setError(null);
+      }
       const { stats: next, error: qErr } = await fetchDashboardStats();
       if (cancelled) return;
       if (qErr) {
         setError(qErr.message);
-        setStats(null);
+        if (!silent) setStats(null);
       } else {
         setStats(next);
+        setLastUpdated(new Date());
       }
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
 
-    load();
+    load(false);
+    const pollId = setInterval(() => load(true), DASHBOARD_POLL_MS);
     return () => {
       cancelled = true;
+      clearInterval(pollId);
     };
   }, []);
 
@@ -226,17 +280,22 @@ export default function Dashboard() {
 
   return (
     <>
-      <header className="page-head">
+      <header className={`page-head page-head--${stats?.kitchenLoad ?? "light"}`}>
         <div className="page-head-text">
           <h1 className="page-title">Overview Dashboard</h1>
           <p className="page-subtitle">
-            Real-time performance analytics for Maa Jaanki Restaurant. Monitoring
-            your culinary excellence with precision.
+            Live kitchen and sales snapshot for Maa Jaanki Restaurant.
           </p>
         </div>
-        <div className="page-date-pill">
-          <IconCalendar />
-          {formatDatePill()}
+        <div className="page-head-actions">
+          <div className="page-date-pill page-date-pill--live">
+            <span className="live-dot" aria-hidden="true" />
+            <IconCalendar />
+            {formatDatePill()}
+          </div>
+          {lastUpdated && !loading && (
+            <p className="page-last-updated">{formatLastUpdated(lastUpdated)}</p>
+          )}
         </div>
       </header>
 
@@ -258,13 +317,18 @@ export default function Dashboard() {
 
       {!loading && stats && (
         <>
-          <div className="summary-grid">
+          <DashboardHero stats={stats} />
+
+          <div className="summary-grid summary-grid--animate">
             <article className="summary-card summary-card--accent-cyan">
               <div className="summary-card-top">
                 <div className="summary-card-icon" aria-hidden="true">
                   <IconBill />
                 </div>
-                <span className="summary-badge summary-badge--green">+12.5%</span>
+                <TrendBadge
+                  pct={null}
+                  fallback={`${stats.ordersWithDiscount} discounted`}
+                />
               </div>
               <p className="summary-card-kicker">Total collected</p>
               <p className="summary-card-value">{formatInr(stats.revenue)}</p>
@@ -297,7 +361,9 @@ export default function Dashboard() {
                 <div className="summary-card-icon summary-card-icon--purple" aria-hidden="true">
                   <IconBag />
                 </div>
-                <span className="summary-badge summary-badge--green">+8.2%</span>
+                <span className="summary-badge summary-badge--neutral">
+                  {stats.customerCount} customers
+                </span>
               </div>
               <p className="summary-card-kicker">Total orders</p>
               <p className="summary-card-value">
@@ -316,7 +382,11 @@ export default function Dashboard() {
                 <div className="summary-card-icon" aria-hidden="true">
                   <IconCalendar />
                 </div>
-                <span className="summary-badge summary-badge--live">LIVE</span>
+                <TrendBadge
+                  pct={stats.hasDailyBreakdown ? stats.revenueTrendPct : null}
+                  fallback="LIVE"
+                  live
+                />
               </div>
               <p className="summary-card-kicker">Today&apos;s revenue</p>
               <p className="summary-card-value summary-card-value--cyan">
@@ -359,9 +429,10 @@ export default function Dashboard() {
                 <div className="summary-card-icon summary-card-icon--warm" aria-hidden="true">
                   <IconUtensils />
                 </div>
-                <span className="summary-badge summary-badge--neutral">
-                  {stats.capacityPct}% capacity
-                </span>
+                <TrendBadge
+                  pct={stats.hasDailyBreakdown ? stats.ordersTrendPct : null}
+                  fallback={`${stats.capacityPct}% load`}
+                />
               </div>
               <p className="summary-card-kicker">Today&apos;s orders</p>
               <p className="summary-card-value summary-card-value--warm">
@@ -390,8 +461,11 @@ export default function Dashboard() {
             </article>
           </div>
 
+          <DashboardInsights stats={stats} />
+
           <DashboardSalesPanel stats={stats} />
 
+          {stats.showRushBanner && (
           <section className="prediction-banner" aria-labelledby="prediction-heading">
             <div className="prediction-banner-bg" aria-hidden="true" />
             <div className="prediction-banner-layout">
@@ -434,6 +508,7 @@ export default function Dashboard() {
               </aside>
             </div>
           </section>
+          )}
 
           {staffingModalOpen && (
             <StaffingRushModal

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useOutletContext } from "react-router-dom";
+import { useOutletContext, useSearchParams } from "react-router-dom";
 import OrderPricingSummary from "../components/OrderPricingSummary";
 import {
   fetchOrdersWithItems,
@@ -296,6 +296,7 @@ function OrderDetailModal({ order, statusKey, onClose, onMarkDelivery }) {
 
 export default function Orders() {
   const { ordersSearch = "" } = useOutletContext() ?? {};
+  const [searchParams, setSearchParams] = useSearchParams();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -312,6 +313,20 @@ export default function Orders() {
   useEffect(() => {
     if (detailOrderId && !detailOrder) setDetailOrderId(null);
   }, [detailOrderId, detailOrder]);
+
+  useEffect(() => {
+    if (orders.length === 0) return;
+    const id = searchParams.get("order");
+    const num = searchParams.get("order_num");
+    if (id) {
+      setDetailOrderId(id);
+      return;
+    }
+    if (num) {
+      const match = orders.find((o) => String(o.order_num) === num);
+      if (match) setDetailOrderId(match.id);
+    }
+  }, [orders, searchParams]);
 
   const filteredOrders = useMemo(
     () => orders.filter((o) => orderMatchesSearch(o, ordersSearch)),
@@ -381,7 +396,11 @@ export default function Orders() {
 
   const closeDetail = useCallback(() => {
     setDetailOrderId(null);
-  }, []);
+    const next = new URLSearchParams(searchParams);
+    next.delete("order");
+    next.delete("order_num");
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   const statusCounts = useMemo(() => {
     let active = 0;
