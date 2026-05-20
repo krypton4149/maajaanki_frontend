@@ -131,3 +131,33 @@ export async function resendOrderConfirmationAdmin({ orderNum, orderId }) {
   }
   return data;
 }
+
+/**
+ * POST /api/admin/orders/reject-payment — cancel order + WhatsApp (e.g. UPI txn mismatch).
+ */
+export async function rejectOrderPaymentAdmin({ orderNum, orderId }) {
+  const body =
+    orderNum != null && orderNum !== ""
+      ? { orderNum: Number(orderNum) }
+      : orderId
+        ? { orderId }
+        : null;
+  if (!body) {
+    throw new Error("Order number or order id is required.");
+  }
+
+  const res = await fetch(apiUrl("/api/admin/orders/reject-payment"), {
+    method: "POST",
+    headers: adminHeaders(),
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.ok === false) {
+    const message =
+      typeof data?.message === "string"
+        ? data.message
+        : `Reject failed (${res.status})`;
+    throw new Error(message);
+  }
+  return data;
+}

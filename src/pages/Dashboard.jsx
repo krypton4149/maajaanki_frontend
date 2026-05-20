@@ -224,14 +224,17 @@ export default function Dashboard() {
     setStats((prev) => {
       if (!prev) return prev;
       const mapOrder = (o) => (o.id === orderId ? { ...o, ...patch } : o);
+      const status = (patch.status ?? "").toString().toLowerCase();
+      const dropFromPending =
+        patch.payment_verified === true ||
+        status === "rejected" ||
+        status === "cancelled" ||
+        status === "canceled";
       return {
         ...prev,
         recentOrders: (prev.recentOrders ?? []).map(mapOrder),
         pendingUpiVerifications: (prev.pendingUpiVerifications ?? [])
-          .filter(
-            (o) =>
-              !(o.id === orderId && patch.payment_verified === true)
-          )
+          .filter((o) => !(o.id === orderId && dropFromPending))
           .map(mapOrder),
       };
     });

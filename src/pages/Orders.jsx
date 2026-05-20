@@ -282,7 +282,11 @@ function OrderDetailModal({
 
           <div className="order-modal-section">
             <h3>UPI payment</h3>
-            <UpiPaymentVerify order={order} onVerified={onPaymentVerified} />
+            <UpiPaymentVerify
+              order={order}
+              onVerified={onPaymentVerified}
+              onRejected={onPaymentVerified}
+            />
           </div>
         </div>
 
@@ -388,7 +392,7 @@ export default function Orders() {
     };
   }, []);
 
-  const markPaymentVerified = useCallback((orderId, patch) => {
+  const patchOrder = useCallback((orderId, patch) => {
     setOrders((prev) =>
       prev.map((o) => (o.id === orderId ? { ...o, ...patch } : o))
     );
@@ -734,9 +738,7 @@ export default function Orders() {
           statusKey={detailStatusKey}
           onClose={closeDetail}
           onMarkDelivery={() => markOutForDelivery(detailOrder.id)}
-          onPaymentVerified={(patch) =>
-            markPaymentVerified(detailOrder.id, patch)
-          }
+          onPaymentVerified={(patch) => patchOrder(detailOrder.id, patch)}
         />
       )}
     </>

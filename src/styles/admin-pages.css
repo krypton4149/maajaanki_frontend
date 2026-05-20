@@ -2821,6 +2821,16 @@
   border: 1px solid rgba(79, 209, 197, 0.35);
 }
 
+.upi-verify__badge--rejected {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.12);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+}
+
+.upi-verify--rejected {
+  border-color: rgba(248, 113, 113, 0.35);
+}
+
 .upi-verify__stored {
   margin: 0;
   font-size: var(--fs-sm);
@@ -2885,10 +2895,29 @@
   font-size: var(--fs-xs);
 }
 
-.upi-verify__done {
-  align-self: flex-start;
+.upi-verify__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
 }
 
-.upi-verify--compact .upi-verify__done {
+.upi-verify__done {
+  align-self: stretch;
+}
+
+.upi-verify__reject {
+  align-self: stretch;
+  color: #f87171;
+  border-color: rgba(248, 113, 113, 0.35);
+}
+
+.upi-verify__reject:hover:not(:disabled) {
+  color: #fca5a5;
+  background: rgba(248, 113, 113, 0.1);
+}
+
+.upi-verify--compact .upi-verify__done,
+.upi-verify--compact .upi-verify__reject {
   width: 100%;
 }

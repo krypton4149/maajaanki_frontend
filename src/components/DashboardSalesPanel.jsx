@@ -225,6 +225,7 @@ function PendingUpiCard({ order, onVerified, onOpenOrder }) {
         order={order}
         compact
         onVerified={(patch) => onVerified(order.id, patch)}
+        onRejected={(patch) => onVerified(order.id, patch)}
       />
     </article>
   );
