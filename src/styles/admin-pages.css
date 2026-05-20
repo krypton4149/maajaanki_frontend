@@ -1051,6 +1051,22 @@
   color: var(--color-text-muted);
 }
 
+.recent-order-card__upi-pending {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--color-amber, #f5a623);
+}
+
+.recent-order-card__upi-id {
+  font-size: var(--fs-xs);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  color: var(--color-cyan-bright, #7ee8dc);
+  max-width: 10rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .recent-order-card__breakdown {
   padding: 10px 14px;
   border-radius: var(--radius-sm);
@@ -2722,4 +2738,144 @@
   .new-order-alert-icon {
     animation: none !important;
   }
+}
+
+/* —— UPI payment verification —— */
+.dashboard-sales-card--upi {
+  margin-bottom: 16px;
+  border-color: rgba(245, 166, 35, 0.25);
+}
+
+.upi-pending-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.upi-pending-card {
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.upi-pending-card__head {
+  margin-bottom: 10px;
+}
+
+.upi-pending-card__order-link {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-cyan-bright);
+  cursor: pointer;
+  text-align: left;
+}
+
+.upi-pending-card__order-link:hover {
+  text-decoration: underline;
+}
+
+.upi-verify {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.upi-verify--compact {
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+.upi-verify--done {
+  border-color: rgba(79, 209, 197, 0.35);
+}
+
+.upi-verify__badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.upi-verify__badge--pending {
+  color: #f5c842;
+  background: rgba(245, 166, 35, 0.15);
+  border: 1px solid rgba(245, 166, 35, 0.35);
+}
+
+.upi-verify__badge--ok {
+  color: var(--color-cyan-bright);
+  background: rgba(79, 209, 197, 0.12);
+  border: 1px solid rgba(79, 209, 197, 0.35);
+}
+
+.upi-verify__stored {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--color-text-secondary);
+}
+
+.upi-verify__stored code {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: var(--fs-sm);
+  color: var(--color-text);
+  word-break: break-all;
+}
+
+.upi-verify__hint,
+.upi-verify__meta {
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--color-text-muted);
+}
+
+.upi-verify__label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: var(--fs-xs);
+  color: var(--color-text-muted);
+}
+
+.upi-verify__input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: var(--fs-sm);
+}
+
+.upi-verify__input:focus {
+  outline: none;
+  border-color: var(--color-cyan);
+  box-shadow: 0 0 0 2px rgba(79, 209, 197, 0.2);
+}
+
+.upi-verify__error {
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: #f87171;
+}
+
+.upi-verify__done {
+  align-self: flex-start;
+}
+
+.upi-verify--compact .upi-verify__done {
+  width: 100%;
 }

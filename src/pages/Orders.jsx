@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useOutletContext, useSearchParams } from "react-router-dom";
 import OrderPricingSummary from "../components/OrderPricingSummary";
+import UpiPaymentVerify from "../components/UpiPaymentVerify";
 import {
   fetchOrdersWithItems,
   orderLineTotal,
@@ -162,7 +163,13 @@ function IconX() {
   );
 }
 
-function OrderDetailModal({ order, statusKey, onClose, onMarkDelivery }) {
+function OrderDetailModal({
+  order,
+  statusKey,
+  onClose,
+  onMarkDelivery,
+  onPaymentVerified,
+}) {
   const lines = order.order_items ?? [];
   const status = STATUS_LOOKUP[statusKey] ?? STATUS_LOOKUP.confirmed;
 
@@ -272,6 +279,11 @@ function OrderDetailModal({ order, statusKey, onClose, onMarkDelivery }) {
             </div>
             <OrderPricingSummary order={order} />
           </div>
+
+          <div className="order-modal-section">
+            <h3>UPI payment</h3>
+            <UpiPaymentVerify order={order} onVerified={onPaymentVerified} />
+          </div>
         </div>
 
         <div className="order-modal-footer">
@@ -374,6 +386,12 @@ export default function Orders() {
       cancelled = true;
       clearInterval(intervalId);
     };
+  }, []);
+
+  const markPaymentVerified = useCallback((orderId, patch) => {
+    setOrders((prev) =>
+      prev.map((o) => (o.id === orderId ? { ...o, ...patch } : o))
+    );
   }, []);
 
   const markOutForDelivery = useCallback(async (orderId) => {
@@ -716,6 +734,9 @@ export default function Orders() {
           statusKey={detailStatusKey}
           onClose={closeDetail}
           onMarkDelivery={() => markOutForDelivery(detailOrder.id)}
+          onPaymentVerified={(patch) =>
+            markPaymentVerified(detailOrder.id, patch)
+          }
         />
       )}
     </>

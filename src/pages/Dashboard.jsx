@@ -220,6 +220,23 @@ export default function Dashboard() {
     navigate("/orders");
   }, [navigate]);
 
+  const patchOrderInStats = useCallback((orderId, patch) => {
+    setStats((prev) => {
+      if (!prev) return prev;
+      const mapOrder = (o) => (o.id === orderId ? { ...o, ...patch } : o);
+      return {
+        ...prev,
+        recentOrders: (prev.recentOrders ?? []).map(mapOrder),
+        pendingUpiVerifications: (prev.pendingUpiVerifications ?? [])
+          .filter(
+            (o) =>
+              !(o.id === orderId && patch.payment_verified === true)
+          )
+          .map(mapOrder),
+      };
+    });
+  }, []);
+
   useEffect(() => {
     const tickId = setInterval(() => setTick((n) => n + 1), 5000);
     return () => clearInterval(tickId);
@@ -450,7 +467,10 @@ export default function Dashboard() {
 
           <DashboardInsights stats={stats} />
 
-          <DashboardSalesPanel stats={stats} />
+          <DashboardSalesPanel
+            stats={stats}
+            onOrderPatched={patchOrderInStats}
+          />
 
           {stats.showRushBanner && (
           <section className="prediction-banner" aria-labelledby="prediction-heading">

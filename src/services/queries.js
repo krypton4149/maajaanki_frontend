@@ -53,6 +53,9 @@ const ORDERS_LIST_COLUMNS = `
       coupon_code,
       payment_method,
       payment_status,
+      upi_transaction_id,
+      payment_verified,
+      payment_verified_at,
       total,
       currency,
       placed_at,
@@ -78,7 +81,7 @@ export async function fetchOrdersWithItems() {
     supabase
       .from("orders")
       .select(
-        "id, order_num, customer_name, phone, whatsapp, address, status, out_for_delivery, subtotal, discount_amount, coupon_code, payment_method, payment_status, total, currency, placed_at"
+        "id, order_num, customer_name, phone, whatsapp, address, status, out_for_delivery, subtotal, discount_amount, coupon_code, payment_method, payment_status, upi_transaction_id, payment_verified, payment_verified_at, total, currency, placed_at"
       )
       .order("order_num", { ascending: false }),
     supabase
@@ -114,6 +117,22 @@ export async function setOrderOutForDelivery(orderId) {
     .from("orders")
     .update({ out_for_delivery: true })
     .eq("id", orderId);
+}
+
+/** Mark UPI payment verified after admin confirms transaction ID matches. */
+export async function verifyOrderPayment(orderId) {
+  const verifiedAt = new Date().toISOString();
+  return supabase
+    .from("orders")
+    .update({
+      payment_verified: true,
+      payment_verified_at: verifiedAt,
+    })
+    .eq("id", orderId)
+    .select(
+      "id, payment_verified, payment_verified_at, upi_transaction_id, payment_method"
+    )
+    .single();
 }
 
 export function orderLineTotal(item) {
@@ -211,7 +230,7 @@ export async function fetchDashboardStats() {
   let ordersRes = await supabase
     .from("orders")
     .select(
-      "id, order_num, customer_name, phone, status, out_for_delivery, subtotal, discount_amount, coupon_code, payment_method, total, placed_at"
+      "id, order_num, customer_name, phone, status, out_for_delivery, subtotal, discount_amount, coupon_code, payment_method, upi_transaction_id, payment_verified, payment_verified_at, total, placed_at"
     );
 
   let dailyField = null;
@@ -221,7 +240,7 @@ export async function fetchDashboardStats() {
     ordersRes = await supabase
       .from("orders")
       .select(
-        "id, order_num, customer_name, phone, status, out_for_delivery, subtotal, discount_amount, coupon_code, payment_method, total, created_at"
+        "id, order_num, customer_name, phone, status, out_for_delivery, subtotal, discount_amount, coupon_code, payment_method, upi_transaction_id, payment_verified, payment_verified_at, total, created_at"
       );
     if (!ordersRes.error) dailyField = "created_at";
   }
@@ -230,7 +249,7 @@ export async function fetchDashboardStats() {
     ordersRes = await supabase
       .from("orders")
       .select(
-        "id, order_num, customer_name, phone, status, out_for_delivery, subtotal, discount_amount, coupon_code, payment_method, total"
+        "id, order_num, customer_name, phone, status, out_for_delivery, subtotal, discount_amount, coupon_code, payment_method, upi_transaction_id, payment_verified, payment_verified_at, total"
       );
   }
 
@@ -302,6 +321,17 @@ export async function fetchDashboardStats() {
   const recentOrders = [...ordersWithItems]
     .sort((a, b) => Number(b.order_num ?? 0) - Number(a.order_num ?? 0))
     .slice(0, 5);
+
+  const pendingUpiVerifications = ordersWithItems
+    .filter((o) => {
+      const method = (o.payment_method ?? "").toString().trim().toLowerCase();
+      return (
+        method === "upi" &&
+        (o.upi_transaction_id ?? "").toString().trim() &&
+        o.payment_verified !== true
+      );
+    })
+    .sort((a, b) => Number(b.order_num ?? 0) - Number(a.order_num ?? 0));
 
   const todayOrderCount = hasDaily ? todayOrderIds.size : 0;
 
@@ -396,6 +426,7 @@ export async function fetchDashboardStats() {
       revenueTrendPct: trendPct(todayRevenue, yesterdayRevenue),
       ordersTrendPct: trendPct(todayOrderCount, yesterdayOrderCount),
       recentOrders,
+      pendingUpiVerifications,
       hasDailyBreakdown: hasDaily,
       capacityPct,
       pipeline,

@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import UpiPaymentVerify from "./UpiPaymentVerify";
 import { formatPaymentMethod } from "../utils/orderPricing";
 
 function formatInr(value) {
@@ -132,6 +133,9 @@ function RecentOrderRow({ order, index, onOpen }) {
   const placed = formatPlacedShort(order.placed_at ?? order.created_at);
   const avatarClass = AVATAR_CYCLE[index % AVATAR_CYCLE.length];
   const couponDisplay = pricing.couponCode || pricing.couponLabel || null;
+  const isUpi = (order.payment_method ?? "").toString().trim().toLowerCase() === "upi";
+  const upiId = (order.upi_transaction_id ?? "").toString().trim();
+  const upiPending = isUpi && upiId && order.payment_verified !== true;
 
   return (
     <button
@@ -154,6 +158,14 @@ function RecentOrderRow({ order, index, onOpen }) {
             <span className={`status-pill ${status.className}`}>{status.label}</span>
             {payment ? (
               <span className="recent-order-card__pay">{payment}</span>
+            ) : null}
+            {upiPending ? (
+              <span className="recent-order-card__upi-pending">Verify UPI</span>
+            ) : null}
+            {isUpi && upiId ? (
+              <span className="recent-order-card__upi-id" title="UPI transaction ID">
+                {upiId}
+              </span>
             ) : null}
           </div>
         </div>
@@ -197,13 +209,35 @@ function RecentOrderRow({ order, index, onOpen }) {
   );
 }
 
-export default function DashboardSalesPanel({ stats }) {
+function PendingUpiCard({ order, onVerified, onOpenOrder }) {
+  return (
+    <article className="upi-pending-card">
+      <div className="upi-pending-card__head">
+        <button
+          type="button"
+          className="upi-pending-card__order-link"
+          onClick={onOpenOrder}
+        >
+          #MJ-{order.order_num} · {order.customer_name ?? "Guest"}
+        </button>
+      </div>
+      <UpiPaymentVerify
+        order={order}
+        compact
+        onVerified={(patch) => onVerified(order.id, patch)}
+      />
+    </article>
+  );
+}
+
+export default function DashboardSalesPanel({ stats, onOrderPatched }) {
   const navigate = useNavigate();
 
   if (!stats) return null;
 
   const openOrders = () => navigate("/orders");
   const openOrder = (order) => navigate(`/orders?order=${order.id}`);
+  const pendingUpi = stats.pendingUpiVerifications ?? [];
 
   return (
     <section className="dashboard-sales" aria-labelledby="dashboard-sales-heading">
@@ -221,6 +255,27 @@ export default function DashboardSalesPanel({ stats }) {
           View all orders
         </button>
       </div>
+
+      {pendingUpi.length > 0 ? (
+        <article className="dashboard-sales-card dashboard-sales-card--wide dashboard-sales-card--upi">
+          <div className="dashboard-sales-card-head">
+            <h3>UPI payments to verify</h3>
+            <p className="dashboard-recent-hint">
+              Match the ID from your bank app with the order, then click Done.
+            </p>
+          </div>
+          <div className="upi-pending-list">
+            {pendingUpi.map((order) => (
+              <PendingUpiCard
+                key={order.id}
+                order={order}
+                onOpenOrder={() => openOrder(order)}
+                onVerified={onOrderPatched}
+              />
+            ))}
+          </div>
+        </article>
+      ) : null}
 
       <div className="dashboard-sales-grid">
         <article className="dashboard-sales-card">
