@@ -2872,6 +2872,19 @@
   color: #f87171;
 }
 
+.upi-verify__success {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--color-cyan-bright);
+  line-height: 1.45;
+}
+
+.upi-verify__resend {
+  align-self: flex-start;
+  margin-top: 4px;
+  font-size: var(--fs-xs);
+}
+
 .upi-verify__done {
   align-self: flex-start;
 }

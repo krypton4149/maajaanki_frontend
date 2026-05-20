@@ -119,22 +119,6 @@ export async function setOrderOutForDelivery(orderId) {
     .eq("id", orderId);
 }
 
-/** Mark UPI payment verified after admin confirms transaction ID matches. */
-export async function verifyOrderPayment(orderId) {
-  const verifiedAt = new Date().toISOString();
-  return supabase
-    .from("orders")
-    .update({
-      payment_verified: true,
-      payment_verified_at: verifiedAt,
-    })
-    .eq("id", orderId)
-    .select(
-      "id, payment_verified, payment_verified_at, upi_transaction_id, payment_method"
-    )
-    .single();
-}
-
 export function orderLineTotal(item) {
   const qty = item.qty ?? 1;
   const unit = Number(item.unit_price);

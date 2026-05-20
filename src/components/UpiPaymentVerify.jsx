@@ -1,5 +1,8 @@
 import { useState } from "react";
-import { verifyOrderPayment } from "../services/queries";
+import {
+  resendOrderConfirmationAdmin,
+  verifyOrderPaymentAdmin,
+} from "../services/api";
 
 function normalizeTxnId(value) {
   return String(value ?? "")
@@ -24,7 +27,7 @@ function isUpiOrder(order) {
 }
 
 /**
- * Admin checks bank/UPI app txn ID against `orders.upi_transaction_id`, then marks verified.
+ * Admin matches bank UPI txn ID, then calls backend verify-payment (DB + WhatsApp).
  */
 export default function UpiPaymentVerify({
   order,
@@ -35,6 +38,8 @@ export default function UpiPaymentVerify({
   const [inputId, setInputId] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
+  const [resendBusy, setResendBusy] = useState(false);
 
   if (!order || !isUpiOrder(order)) return null;
 
@@ -45,6 +50,7 @@ export default function UpiPaymentVerify({
   async function handleVerify(e) {
     e?.preventDefault();
     setError(null);
+    setSuccessMessage(null);
 
     if (!storedId) {
       setError("No UPI transaction ID saved on this order yet.");
@@ -65,22 +71,42 @@ export default function UpiPaymentVerify({
     }
 
     setBusy(true);
-    const { data, error: upErr } = await verifyOrderPayment(order.id);
-    setBusy(false);
-
-    if (upErr) {
-      setError(
-        upErr.message ||
-          "Could not update payment status. Check UPDATE policy on orders."
+    try {
+      const data = await verifyOrderPaymentAdmin({
+        orderNum: order.order_num,
+        orderId: order.id,
+      });
+      setInputId("");
+      setSuccessMessage(
+        data.message || "Payment verified. Order confirmation sent on WhatsApp."
       );
-      return;
+      onVerified?.({
+        payment_verified: true,
+        payment_verified_at: new Date().toISOString(),
+      });
+    } catch (err) {
+      setError(err.message || "Verification failed.");
+    } finally {
+      setBusy(false);
     }
+  }
 
-    setInputId("");
-    onVerified?.({
-      payment_verified: true,
-      payment_verified_at: data?.payment_verified_at ?? new Date().toISOString(),
-    });
+  async function handleResend() {
+    setError(null);
+    setResendBusy(true);
+    try {
+      const data = await resendOrderConfirmationAdmin({
+        orderNum: order.order_num,
+        orderId: order.id,
+      });
+      setSuccessMessage(
+        data.message || "Order confirmation resent on WhatsApp."
+      );
+    } catch (err) {
+      setError(err.message || "Could not resend confirmation.");
+    } finally {
+      setResendBusy(false);
+    }
   }
 
   if (verified) {
@@ -94,9 +120,26 @@ export default function UpiPaymentVerify({
             UPI ID: <code>{storedId}</code>
           </p>
         ) : null}
-        {verifiedAtLabel ? (
+        {successMessage ? (
+          <p className="upi-verify__success" role="status">
+            {successMessage}
+          </p>
+        ) : verifiedAtLabel ? (
           <p className="upi-verify__meta">Verified {verifiedAtLabel}</p>
         ) : null}
+        {error ? (
+          <p className="upi-verify__error" role="alert">
+            {error}
+          </p>
+        ) : null}
+        <button
+          type="button"
+          className="btn btn-ghost upi-verify__resend"
+          disabled={resendBusy}
+          onClick={handleResend}
+        >
+          {resendBusy ? "Sending…" : "Resend WhatsApp confirmation"}
+        </button>
       </div>
     );
   }
@@ -136,12 +179,17 @@ export default function UpiPaymentVerify({
           {error}
         </p>
       ) : null}
+      {successMessage ? (
+        <p className="upi-verify__success" role="status">
+          {successMessage}
+        </p>
+      ) : null}
       <button
         type="submit"
         className="btn btn-primary upi-verify__done"
         disabled={busy || !storedId}
       >
-        {busy ? "Saving…" : "Done — mark payment verified"}
+        {busy ? "Verifying…" : "Verify payment"}
       </button>
     </form>
   );

@@ -57,3 +57,77 @@ export async function placeOrder({
   }
   return data;
 }
+
+function adminHeaders() {
+  const key = import.meta.env.VITE_ADMIN_VERIFY_KEY;
+  if (!key) {
+    throw new Error(
+      "VITE_ADMIN_VERIFY_KEY is not set. Add it to .env for payment verification."
+    );
+  }
+  return {
+    "Content-Type": "application/json",
+    "x-admin-key": key,
+  };
+}
+
+/**
+ * POST /api/admin/orders/verify-payment — marks paid in DB and sends WhatsApp confirmation.
+ * @param {{ orderNum?: number, orderId?: string }} params
+ */
+export async function verifyOrderPaymentAdmin({ orderNum, orderId }) {
+  const body =
+    orderNum != null && orderNum !== ""
+      ? { orderNum: Number(orderNum) }
+      : orderId
+        ? { orderId }
+        : null;
+  if (!body) {
+    throw new Error("Order number or order id is required.");
+  }
+
+  const res = await fetch(apiUrl("/api/admin/orders/verify-payment"), {
+    method: "POST",
+    headers: adminHeaders(),
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.ok === false) {
+    const message =
+      typeof data?.message === "string"
+        ? data.message
+        : `Verification failed (${res.status})`;
+    throw new Error(message);
+  }
+  return data;
+}
+
+/**
+ * POST /api/admin/orders/send-confirmation — resend WhatsApp when already verified in DB.
+ */
+export async function resendOrderConfirmationAdmin({ orderNum, orderId }) {
+  const body =
+    orderNum != null && orderNum !== ""
+      ? { orderNum: Number(orderNum) }
+      : orderId
+        ? { orderId }
+        : null;
+  if (!body) {
+    throw new Error("Order number or order id is required.");
+  }
+
+  const res = await fetch(apiUrl("/api/admin/orders/send-confirmation"), {
+    method: "POST",
+    headers: adminHeaders(),
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.ok === false) {
+    const message =
+      typeof data?.message === "string"
+        ? data.message
+        : `Resend failed (${res.status})`;
+    throw new Error(message);
+  }
+  return data;
+}
